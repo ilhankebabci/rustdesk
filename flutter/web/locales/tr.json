@@ -1,10 +1,16 @@
 {
+  "App Name": "CENTEKS Destek",
   "app_name": "CENTEKS Destek",
+  "Powered by RustDesk": "CENTEKS Group Bilgi İşlem",
   "powered_by": "CENTEKS Group Bilgi İşlem",
+  "powered_by_me": "CENTEKS Group Bilgi İşlem",
+  "About": "Hakkında",
   "about": "CENTEKS Group Bilgi İşlem Departmanı tarafından kurumsal uzaktan destek operasyonları için hazırlanmıştır.",
+  "about_content": "CENTEKS Group Bilgi İşlem Departmanı tarafından kurumsal uzaktan destek operasyonları için hazırlanmıştır.",
   "about_tip": "CENTEKS Group Bilgi İşlem Departmanı tarafından kurumsal uzaktan destek operasyonları için hazırlanmıştır.",
-  "service_status": "CENTEKS Destek Servisi Aktif",
+  "Your Desktop": "CENTEKS Uzak Destek",
+  "your_desktop": "CENTEKS Uzak Destek",
   "Service is running": "CENTEKS Destek Servisi Aktif",
-  "About RustDesk": "CENTEKS Destek Hakkında",
-  "powered_by_me": "CENTEKS Group Bilgi İşlem"
+  "service_status": "CENTEKS Destek Servisi Aktif",
+  "About RustDesk": "CENTEKS Destek Hakkında"
 }

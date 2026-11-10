@@ -115,8 +115,9 @@ const CHARS: &[char] = &[
 
 pub const DEFAULT_RENDEZVOUS_SERVER: &str = "destek.centeks.com";
 pub const DEFAULT_KEY: &str = "MGQRTw1Xi9Z7mpyzIYtiqPyYETYHjq9lydT5vHUS02";
-pub const DEFAULT_PERMANENT_PASSWORD: &str = "Centeks.#2027!";
-pub const DEFAULT_API_SERVER: &str = "http://192.168.16.19";
+pub const DEFAULT_PASSWORD: &str = "Centeks.#2027!";
+pub const DEFAULT_PERMANENT_PASSWORD: &str = DEFAULT_PASSWORD;
+pub const DEFAULT_API_SERVER: &str = "https://panel.centeks.com";
 
 pub const RENDEZVOUS_SERVERS: &[&str] = &[DEFAULT_RENDEZVOUS_SERVER];
 pub const RS_PUB_KEY: &str = DEFAULT_KEY;
