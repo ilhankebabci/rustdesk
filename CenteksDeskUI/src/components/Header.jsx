@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, 
   Download, 
@@ -11,7 +11,14 @@ import {
   RefreshCw,
   Globe,
   Radio,
-  Lock
+  Lock,
+  Settings,
+  Users,
+  FileSpreadsheet,
+  LogOut,
+  KeyRound,
+  ShieldAlert,
+  Sliders
 } from 'lucide-react';
 
 export default function Header({ 
@@ -20,18 +27,38 @@ export default function Header({
   onDownloadClick,
   onlineCount,
   totalCount,
-  onRefresh
+  onRefresh,
+  onOpenAccountSettings,
+  onOpenUserManagement,
+  onOpenAuditLogs
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  const profileRef = useRef(null);
+  const notifRef = useRef(null);
+
+  // Dışarı tıklandığında menüleri kapat
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setProfileOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-[#243540] bg-[#0c1419]/95 px-6 backdrop-blur-md">
       {/* Sol: Centeks Logo & Kurumsal Kimlik */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3.5">
-          {/* Centeks Amblem Logosu */}
-          <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a2933] to-[#0c1419] p-2 ring-1 ring-[#d7b469]/40 shadow-lg shadow-[#d7b469]/5">
+          {/* Centeks Amblem Logosu - Mükemmel Oturan Vektör */}
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a2933] to-[#0c1419] p-1.5 ring-1 ring-[#d7b469]/40 shadow-lg shadow-[#d7b469]/5">
             <img 
               src="/centeks-emblem.svg" 
               alt="CENTEKS" 
@@ -56,7 +83,7 @@ export default function Header({
               <span>CENTEKS Group Bilgi İşlem</span>
               <span className="text-slate-600">•</span>
               <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
                 Sistemler Aktif
               </span>
             </p>
@@ -127,7 +154,7 @@ export default function Header({
         </button>
 
         {/* Bildirimler */}
-        <div className="relative">
+        <div className="relative" ref={notifRef}>
           <button
             onClick={() => setNotificationsOpen(!notificationsOpen)}
             className="relative rounded-xl border border-[#243540] bg-[#142028] p-2 text-slate-300 hover:text-white transition-colors"
@@ -143,18 +170,18 @@ export default function Header({
                 <span className="text-[10px] text-[#d7b469] font-mono">Tümü Okundu</span>
               </div>
               <div className="py-2 text-xs space-y-2.5">
-                <div className="flex items-start gap-2.5 p-1.5 rounded-lg bg-[#142028]">
+                <div className="flex items-start gap-2.5 p-2 rounded-lg bg-[#142028]">
                   <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-slate-100 font-semibold text-[11px]">panel.centeks.com SSL Aktif</p>
-                    <p className="text-[10px] text-slate-400">DNS A kaydı ve Let's Encrypt TLS sertifikası devrede.</p>
+                    <p className="text-slate-100 font-semibold text-[11px]">panel.centeks.com SSL Devrede</p>
+                    <p className="text-[10px] text-slate-400">DNS A kaydı ve TLS sertifikası aktif.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2.5 p-1.5 rounded-lg bg-[#142028]">
-                  <Server className="h-4 w-4 text-[#d7b469] shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 p-2 rounded-lg bg-[#142028]">
+                  <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-slate-100 font-semibold text-[11px]">Rendezvous ID Sunucusu</p>
-                    <p className="text-[10px] text-slate-400">destek.centeks.com:21116 tüneli stabil çalışıyor.</p>
+                    <p className="text-slate-100 font-semibold text-[11px]">destek.centeks.com:21116 Aktif</p>
+                    <p className="text-[10px] text-slate-400">Rendezvous ve relay sunucusu P2P hazır.</p>
                   </div>
                 </div>
               </div>
@@ -162,41 +189,97 @@ export default function Header({
           )}
         </div>
 
-        {/* Profil Menüsü */}
-        <div className="relative">
+        {/* PROFİL & HESAP YÖNETİMİ MENÜSÜ */}
+        <div className="relative" ref={profileRef}>
           <button
             onClick={() => setProfileOpen(!profileOpen)}
-            className="flex items-center gap-2.5 rounded-xl border border-[#243540] bg-[#142028] py-1.5 pl-2 pr-3 hover:border-[#d7b469]/50 transition-all"
+            className="flex items-center gap-2.5 rounded-xl border border-[#243540] bg-[#142028] px-3 py-1.5 text-xs text-slate-200 hover:border-[#d7b469]/50 transition-colors"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#d7b469]/20 text-xs font-extrabold text-[#d7b469] ring-1 ring-[#d7b469]/30">
-              C
+            {/* Profil Avatarı */}
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#d7b469] to-[#b99547] text-[#0c1419] font-black text-xs shadow-sm">
+              İK
             </div>
-            <div className="text-left hidden md:block">
-              <p className="text-xs font-bold text-slate-100">İlhan Kebabcı</p>
-              <p className="text-[10px] text-slate-400">Bilgi İşlem Yöneticisi</p>
+
+            <div className="hidden md:block text-left">
+              <span className="font-bold text-white block text-xs leading-none">İlhan Kebabçı</span>
+              <span className="text-[10px] text-[#d7b469] font-mono leading-none">Site Administrator</span>
             </div>
+
             <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 mt-2 w-60 rounded-2xl border border-[#243540] bg-[#0f1920] p-2 shadow-2xl shadow-black z-50">
-              <div className="px-3 py-2 border-b border-[#243540]">
-                <p className="text-xs font-bold text-white">CENTEKS Group Bilgi İşlem</p>
-                <p className="text-[11px] text-[#d7b469] font-mono">ilhan@centeks.com</p>
+            <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#243540] bg-[#0c1419] p-2 shadow-2xl shadow-black z-50 divide-y divide-[#243540]/60">
+              {/* Profil Başlığı */}
+              <div className="p-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#d7b469] to-[#b99547] text-[#0c1419] font-black text-sm">
+                    İK
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">İlhan Kebabçı</h4>
+                    <p className="text-[11px] font-mono text-slate-400">destek@centeks.com</p>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="rounded-md bg-[#d7b469]/15 px-2 py-0.5 text-[10px] font-mono font-bold text-[#d7b469] border border-[#d7b469]/30">
+                    Site Administrator
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-semibold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> 2FA Aktif
+                  </span>
+                </div>
               </div>
-              <div className="py-1">
-                <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-[#1a2933] hover:text-white">
-                  <User className="h-3.5 w-3.5 text-[#d7b469]" />
-                  Profil & Yetkilendirme
+
+              {/* Menü Eylemleri */}
+              <div className="py-1.5 space-y-0.5">
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    onOpenAccountSettings();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 hover:bg-[#142028] hover:text-[#d7b469] transition-colors"
+                >
+                  <KeyRound className="h-4 w-4 text-[#d7b469]" />
+                  <span>Hesap & Güvenlik Ayarları</span>
                 </button>
-                <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-[#1a2933] hover:text-white">
-                  <Server className="h-3.5 w-3.5 text-[#d7b469]" />
-                  Uzak Sunucu Parametreleri
+
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    onOpenUserManagement();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 hover:bg-[#142028] hover:text-[#d7b469] transition-colors"
+                >
+                  <Users className="h-4 w-4 text-[#d7b469]" />
+                  <span>Kullanıcı & Yetki Yönetimi (RBAC)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    onOpenAuditLogs();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 hover:bg-[#142028] hover:text-[#d7b469] transition-colors"
+                >
+                  <ShieldAlert className="h-4 w-4 text-[#d7b469]" />
+                  <span>Olay & Denetim Günlüğü (Audit Log)</span>
                 </button>
               </div>
-              <div className="pt-1 border-t border-[#243540]">
-                <button className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10">
-                  Oturumu Kapat
+
+              {/* Çıkış Yap */}
+              <div className="pt-1.5">
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    if (confirm('Centeks Destek RMM oturumunu sonlandırmak istediğinize emin misiniz?')) {
+                      window.location.reload();
+                    }
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Güvenli Çıkış Yap</span>
                 </button>
               </div>
             </div>

@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { LayoutGrid, List, Monitor, Terminal, FolderOpen, ArrowUpDown, Cpu, HardDrive } from 'lucide-react';
+import { 
+  LayoutGrid, 
+  List, 
+  Monitor, 
+  Terminal, 
+  FolderOpen, 
+  Info,
+  Cpu, 
+  HardDrive 
+} from 'lucide-react';
 import DeviceCard from './DeviceCard';
 
 export default function DeviceGrid({ 
@@ -7,6 +16,7 @@ export default function DeviceGrid({
   onConnect, 
   onTerminal, 
   onFiles,
+  onDetails,
   selectedDepartmentName
 }) {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
@@ -14,11 +24,11 @@ export default function DeviceGrid({
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-5">
       {/* Üst Başlık & Görünüm Seçici */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#243540]">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span>{selectedDepartmentName} Cihazları</span>
-            <span className="text-xs font-mono font-medium rounded-full bg-slate-800 px-2.5 py-0.5 text-slate-400">
+          <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2.5">
+            <span>{selectedDepartmentName}</span>
+            <span className="text-xs font-mono font-bold rounded-lg bg-[#142028] px-2.5 py-0.5 text-[#d7b469] border border-[#d7b469]/30">
               {devices.length} Cihaz
             </span>
           </h2>
@@ -27,15 +37,15 @@ export default function DeviceGrid({
           </p>
         </div>
 
-        {/* Görünüm Değiştirici (Grid / Liste) */}
+        {/* Görünüm Değiştirici (Grid / Liste) - Centeks Gold & Navy */}
         <div className="flex items-center gap-2">
-          <div className="flex rounded-xl bg-slate-900/90 p-1 border border-slate-800">
+          <div className="flex rounded-xl bg-[#142028] p-1 border border-[#243540]">
             <button
               onClick={() => setViewMode('grid')}
               title="Grid Kart Görünümü"
               className={`rounded-lg p-1.5 transition-all ${
                 viewMode === 'grid' 
-                  ? 'bg-blue-600 text-white shadow-sm' 
+                  ? 'bg-gradient-to-r from-[#d7b469] to-[#c49e52] text-[#0c1419] font-bold shadow-md' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -46,7 +56,7 @@ export default function DeviceGrid({
               title="Detaylı Tablo Görünümü"
               className={`rounded-lg p-1.5 transition-all ${
                 viewMode === 'table' 
-                  ? 'bg-blue-600 text-white shadow-sm' 
+                  ? 'bg-gradient-to-r from-[#d7b469] to-[#c49e52] text-[#0c1419] font-bold shadow-md' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -58,8 +68,8 @@ export default function DeviceGrid({
 
       {/* Cihaz Bulunamadı Durumu */}
       {devices.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 p-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-800/60 text-slate-400 mb-3">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#243540] bg-[#0c1419]/60 p-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#142028] text-[#d7b469] mb-3 border border-[#243540]">
             <Monitor className="h-6 w-6" />
           </div>
           <h3 className="text-sm font-semibold text-slate-200">Eşleşen Cihaz Bulunamadı</h3>
@@ -77,66 +87,79 @@ export default function DeviceGrid({
               onConnect={onConnect}
               onTerminal={onTerminal}
               onFiles={onFiles}
+              onDetails={onDetails}
             />
           ))}
         </div>
       ) : (
-        /* TABLO GÖRÜNÜMÜ */
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-xl">
+        /* DETAYLI TABLO GÖRÜNÜMÜ */
+        <div className="rounded-2xl border border-[#243540] bg-[#0c1419] overflow-hidden shadow-xl">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950/80 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-800 text-[10px]">
+            <thead className="bg-[#101b22] text-slate-400 font-semibold uppercase tracking-wider border-b border-[#243540] text-[10px]">
               <tr>
                 <th className="py-3 px-4">Durum</th>
                 <th className="py-3 px-4">Cihaz Adı</th>
                 <th className="py-3 px-4">RustDesk ID</th>
                 <th className="py-3 px-4">IP Adresi</th>
+                <th className="py-3 px-4">Departman</th>
                 <th className="py-3 px-4">Kullanıcı</th>
                 <th className="py-3 px-4">CPU / RAM</th>
                 <th className="py-3 px-4">İşletim Sistemi</th>
                 <th className="py-3 px-4 text-right">Eylemler</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300 font-medium">
+            <tbody className="divide-y divide-[#243540]/60 text-slate-300 font-medium">
               {devices.map((device) => {
                 const isOnline = device.status === 'online';
                 return (
-                  <tr key={device.id} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={device.id} className="hover:bg-[#142028]/60 transition-colors">
                     <td className="py-3 px-4">
                       {isOnline ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                           Online
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-2 py-0.5 text-[11px] font-medium text-slate-400">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-medium text-slate-400 border border-slate-700">
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
                           Offline
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 font-semibold text-slate-100">
-                      {device.name}
+                    <td className="py-3 px-4">
+                      <span 
+                        onClick={() => onDetails && onDetails(device)}
+                        className="font-bold text-white hover:text-[#d7b469] cursor-pointer transition-colors"
+                      >
+                        {device.name}
+                      </span>
                     </td>
-                    <td className="py-3 px-4 font-mono font-medium text-slate-300">
+                    <td className="py-3 px-4 font-mono font-bold text-[#d7b469]">
                       {device.rustdeskId}
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-400">
+                    <td className="py-3 px-4 font-mono text-slate-300">
                       {device.ip}
                     </td>
-                    <td className="py-3 px-4 text-slate-400">
+                    <td className="py-3 px-4">
+                      <span className="capitalize text-slate-300 text-[11px] bg-[#142028] px-2 py-0.5 rounded border border-[#243540]">
+                        {device.department}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">
                       {device.user}
                     </td>
                     <td className="py-3 px-4">
                       {isOnline ? (
-                        <div className="flex items-center gap-3 text-[11px]">
-                          <span>CPU: <strong className="text-slate-200">{device.cpu}%</strong></span>
-                          <span>RAM: <strong className="text-slate-200">{device.ram}%</strong></span>
+                        <div className="flex items-center gap-2.5 text-[11px] font-mono">
+                          <span className="text-[#d7b469]">CPU: {device.cpu}%</span>
+                          <span className="text-slate-600">|</span>
+                          <span className="text-emerald-400">RAM: {device.ram}%</span>
                         </div>
                       ) : (
                         <span className="text-slate-500">-</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-slate-400 text-[11px]">
+                    <td className="py-3 px-4 text-slate-400 text-[11px] font-mono truncate max-w-[140px]">
                       {device.osVersion}
                     </td>
                     <td className="py-3 px-4 text-right">
@@ -144,7 +167,7 @@ export default function DeviceGrid({
                         <button
                           onClick={() => onConnect(device)}
                           disabled={!isOnline}
-                          className="rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-2.5 py-1 text-xs font-semibold text-white transition-colors"
+                          className="rounded-xl bg-gradient-to-r from-[#d7b469] to-[#c49e52] hover:brightness-110 active:scale-95 disabled:opacity-30 px-3 py-1 text-xs font-bold text-[#0c1419] transition-all"
                         >
                           Bağlan
                         </button>
@@ -152,7 +175,7 @@ export default function DeviceGrid({
                           onClick={() => onTerminal(device)}
                           disabled={!isOnline}
                           title="Terminal"
-                          className="rounded-lg border border-slate-700 bg-slate-800 p-1 hover:text-white transition-colors"
+                          className="rounded-xl border border-[#243540] bg-[#142028] p-1.5 text-slate-300 hover:text-[#d7b469] hover:border-[#d7b469]/50 disabled:opacity-30 transition-colors"
                         >
                           <Terminal className="h-3.5 w-3.5" />
                         </button>
@@ -160,9 +183,16 @@ export default function DeviceGrid({
                           onClick={() => onFiles(device)}
                           disabled={!isOnline}
                           title="Dosyalar"
-                          className="rounded-lg border border-slate-700 bg-slate-800 p-1 hover:text-white transition-colors"
+                          className="rounded-xl border border-[#243540] bg-[#142028] p-1.5 text-slate-300 hover:text-[#d7b469] hover:border-[#d7b469]/50 disabled:opacity-30 transition-colors"
                         >
                           <FolderOpen className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => onDetails && onDetails(device)}
+                          title="Donanım Özeti"
+                          className="rounded-xl border border-[#243540] bg-[#142028] p-1.5 text-slate-300 hover:text-[#d7b469] hover:border-[#d7b469]/50 transition-colors"
+                        >
+                          <Info className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
@@ -176,4 +206,3 @@ export default function DeviceGrid({
     </div>
   );
 }
-

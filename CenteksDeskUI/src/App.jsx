@@ -6,6 +6,10 @@ import RemoteSessionModal from './components/RemoteSessionModal';
 import TerminalModal from './components/TerminalModal';
 import FileManagerModal from './components/FileManagerModal';
 import AgentDownloadModal from './components/AgentDownloadModal';
+import AccountSettingsModal from './components/AccountSettingsModal';
+import UserManagementModal from './components/UserManagementModal';
+import AuditLogModal from './components/AuditLogModal';
+import DeviceDetailsModal from './components/DeviceDetailsModal';
 import { INITIAL_DEVICES, DEPARTMENTS } from './data/mockDevices';
 import { CenteksRmmService } from './services/api';
 
@@ -19,7 +23,11 @@ export default function App() {
   const [activeSession, setActiveSession] = useState(null);
   const [activeTerminal, setActiveTerminal] = useState(null);
   const [activeFiles, setActiveFiles] = useState(null);
+  const [deviceDetailsTarget, setDeviceDetailsTarget] = useState(null);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  const [userManagementOpen, setUserManagementOpen] = useState(false);
+  const [auditLogsOpen, setAuditLogsOpen] = useState(false);
 
   // Filtrelenmiş Cihaz Listesi
   const filteredDevices = useMemo(() => {
@@ -52,7 +60,7 @@ export default function App() {
   // Seçili Departman Adı
   const selectedDepartmentName = useMemo(() => {
     const found = DEPARTMENTS.find(d => d.id === selectedDepartment);
-    return found ? found.name : 'Tüm Departmanlar';
+    return found ? `${found.name} Grubu Cihazları` : 'Tüm Sistemler ve Cihazlar';
   }, [selectedDepartment]);
 
   // Eylemler
@@ -129,6 +137,9 @@ export default function App() {
         onlineCount={onlineCount}
         totalCount={totalCount}
         onRefresh={handleRefresh}
+        onOpenAccountSettings={() => setAccountSettingsOpen(true)}
+        onOpenUserManagement={() => setUserManagementOpen(true)}
+        onOpenAuditLogs={() => setAuditLogsOpen(true)}
       />
 
       {/* Ana Gövde (Sidebar + Cihaz Grid) */}
@@ -148,6 +159,7 @@ export default function App() {
             onConnect={handleConnect}
             onTerminal={handleTerminal}
             onFiles={handleFiles}
+            onDetails={(device) => setDeviceDetailsTarget(device)}
             selectedDepartmentName={selectedDepartmentName}
           />
         </main>
@@ -175,9 +187,36 @@ export default function App() {
         />
       )}
 
+      {deviceDetailsTarget && (
+        <DeviceDetailsModal
+          device={deviceDetailsTarget}
+          onClose={() => setDeviceDetailsTarget(null)}
+          onConnect={handleConnect}
+          onTerminal={handleTerminal}
+        />
+      )}
+
       {downloadModalOpen && (
         <AgentDownloadModal
           onClose={() => setDownloadModalOpen(false)}
+        />
+      )}
+
+      {accountSettingsOpen && (
+        <AccountSettingsModal
+          onClose={() => setAccountSettingsOpen(false)}
+        />
+      )}
+
+      {userManagementOpen && (
+        <UserManagementModal
+          onClose={() => setUserManagementOpen(false)}
+        />
+      )}
+
+      {auditLogsOpen && (
+        <AuditLogModal
+          onClose={() => setAuditLogsOpen(false)}
         />
       )}
     </div>

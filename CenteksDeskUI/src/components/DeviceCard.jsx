@@ -11,10 +11,12 @@ import {
   Check, 
   Wifi,
   ShieldAlert,
-  ShieldCheck
+  ShieldCheck,
+  Info,
+  Server
 } from 'lucide-react';
 
-export default function DeviceCard({ device, onConnect, onTerminal, onFiles }) {
+export default function DeviceCard({ device, onConnect, onTerminal, onFiles, onDetails }) {
   const [copied, setCopied] = React.useState(false);
 
   const copyRustDeskId = (e) => {
@@ -52,7 +54,11 @@ export default function DeviceCard({ device, onConnect, onTerminal, onFiles }) {
 
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-slate-100 tracking-tight group-hover:text-[#d7b469] transition-colors">
+                <h3 
+                  onClick={() => onDetails && onDetails(device)}
+                  className="font-bold text-sm text-slate-100 tracking-tight group-hover:text-[#d7b469] transition-colors cursor-pointer"
+                  title="Donanım ve Sistem Detaylarını İncele"
+                >
                   {device.name}
                 </h3>
               </div>
@@ -103,9 +109,13 @@ export default function DeviceCard({ device, onConnect, onTerminal, onFiles }) {
           </div>
         </div>
 
-        {/* CPU & RAM Kullanım Barları */}
+        {/* CPU & RAM Kullanım Barları (Tıklanabilir -> Donanım Özeti açar) */}
         {isOnline ? (
-          <div className="mt-3 grid grid-cols-2 gap-3 pt-1">
+          <div 
+            onClick={() => onDetails && onDetails(device)}
+            className="mt-3 grid grid-cols-2 gap-3 pt-1 cursor-pointer hover:opacity-90 transition-opacity"
+            title="Sistem Detaylarını Gör"
+          >
             {/* CPU Barı */}
             <div>
               <div className="flex items-center justify-between text-[11px] mb-1">
@@ -152,21 +162,21 @@ export default function DeviceCard({ device, onConnect, onTerminal, onFiles }) {
         )}
       </div>
 
-      {/* Alt Aksiyon Butonları (Bağlan, Terminal, Dosyalar) */}
-      <div className="flex items-center border-t border-[#243540] bg-[#0c1419] p-2 gap-2">
+      {/* Alt Aksiyon Butonları (Bağlan, Terminal, Dosyalar, Sistem Detayları) */}
+      <div className="flex items-center border-t border-[#243540] bg-[#0c1419] p-2 gap-1.5">
         <button
           onClick={() => onConnect(device)}
           disabled={!isOnline}
           className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#d7b469] to-[#c49e52] hover:brightness-110 active:scale-95 disabled:opacity-30 disabled:hover:brightness-100 py-2 text-xs font-bold text-[#0c1419] shadow-sm transition-all"
         >
           <Monitor className="h-3.5 w-3.5 stroke-[2.5]" />
-          <span>Masaüstüne Bağlan</span>
+          <span>Bağlan</span>
         </button>
 
         <button
           onClick={() => onTerminal(device)}
           disabled={!isOnline}
-          title="Uzak PowerShell Terminal"
+          title="Uzak PowerShell / Konsol"
           className="flex items-center justify-center rounded-xl border border-[#243540] bg-[#142028] hover:border-[#d7b469]/50 hover:text-[#d7b469] disabled:opacity-30 p-2 text-slate-300 transition-colors"
         >
           <Terminal className="h-3.5 w-3.5" />
@@ -179,6 +189,14 @@ export default function DeviceCard({ device, onConnect, onTerminal, onFiles }) {
           className="flex items-center justify-center rounded-xl border border-[#243540] bg-[#142028] hover:border-[#d7b469]/50 hover:text-[#d7b469] disabled:opacity-30 p-2 text-slate-300 transition-colors"
         >
           <FolderOpen className="h-3.5 w-3.5" />
+        </button>
+
+        <button
+          onClick={() => onDetails && onDetails(device)}
+          title="Sistem & Donanım Özeti"
+          className="flex items-center justify-center rounded-xl border border-[#243540] bg-[#142028] hover:border-[#d7b469]/50 hover:text-[#d7b469] p-2 text-slate-300 transition-colors"
+        >
+          <Info className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
