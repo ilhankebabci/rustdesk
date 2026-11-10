@@ -488,6 +488,7 @@ jobs:
           popd
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
+          cp ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe ./SignOutput/CENTEKS-Destek-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
@@ -561,27 +562,63 @@ jobs:
           name: rustdesk-unsigned-msi-template-${{ matrix.job.arch }}
           path: ./msi-template
 
-      - name: Sign rustdesk self-extracted file
-        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
-        shell: bash
+      - name: Code sign Windows executables and MSI
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: powershell
+        env:
+          CERT_BASE64: ${{ secrets.CERT_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
         run: |
-          BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
+          if ([string]::IsNullOrWhiteSpace($env:CERT_BASE64)) {
+            Write-Host "CERT_BASE64 secret is not configured; skipping code signing."
+          } else {
+            Write-Host "Decoding certificate from CERT_BASE64..."
+            $certBytes = [System.Convert]::FromBase64String($env:CERT_BASE64)
+            $certPath = "$pwd\code_signing_cert.pfx"
+            [System.IO.File]::WriteAllBytes($certPath, $certBytes)
 
-      - name: Upload signed Windows Flutter EXE
-        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true' && env.SIGN_BASE_URL != '-2'
+            $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'x64' } | Select-Object -First 1).FullName
+            if (-not $signtool) {
+              $signtool = "signtool.exe"
+            }
+            Write-Host "Using SignTool: $signtool"
+
+            $targets = Get-ChildItem -Path "./SignOutput" -Include *.exe,*.msi -Recurse -ErrorAction SilentlyContinue
+            foreach ($item in $targets) {
+              Write-Host "Signing $($item.FullName)..."
+              $signArgs = @("sign", "/f", $certPath, "/fd", "SHA256", "/tr", "http://timestamp.digicert.com", "/td", "SHA256")
+              if (![string]::IsNullOrWhiteSpace($env:CERT_PASSWORD)) {
+                $signArgs += @("/p", $env:CERT_PASSWORD)
+              }
+              $signArgs += $item.FullName
+              & $signtool $signArgs
+              if ($LASTEXITCODE -ne 0) {
+                Write-Warning "SignTool failed for $($item.FullName) (exit code: $LASTEXITCODE)"
+              } else {
+                Write-Host "Successfully signed $($item.FullName)"
+              }
+            }
+
+            if (Test-Path $certPath) {
+              Remove-Item -Force $certPath
+            }
+          }
+
+      - name: Upload Windows Flutter Portable EXE
+        if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-flutter-${{ matrix.job.arch }}-exe
-          path: ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
+          path: ./SignOutput/*.exe
           if-no-files-found: error
 
-      - name: Upload signed Windows Flutter MSI
-        if: env.UPLOAD_ARTIFACT == 'true' && env.PUBLISH_UPDATE_METADATA == 'true' && env.SIGN_BASE_URL != '-2'
+      - name: Upload Windows Flutter MSI
+        if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-flutter-${{ matrix.job.arch }}-msi
-          path: ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
-          if-no-files-found: error
+          path: ./SignOutput/*.msi
+          if-no-files-found: warn
 
       - name: Publish Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1

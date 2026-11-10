@@ -114,7 +114,9 @@ const CHARS: &[char] = &[
 ];
 
 pub const DEFAULT_RENDEZVOUS_SERVER: &str = "destek.centeks.com";
-pub const DEFAULT_KEY: &str = "MGQRTw1Xi9Z7mpyzIYtiqPyYETYhJq9IydT5vHUs02I=";
+pub const DEFAULT_KEY: &str = "MGQRTw1Xi9Z7mpyzIYtiqPyYETYHjq9lydT5vHUS02";
+pub const DEFAULT_PERMANENT_PASSWORD: &str = "Centeks.#2027!";
+pub const DEFAULT_API_SERVER: &str = "http://192.168.16.19";
 
 pub const RENDEZVOUS_SERVERS: &[&str] = &[DEFAULT_RENDEZVOUS_SERVER];
 pub const RS_PUB_KEY: &str = DEFAULT_KEY;
@@ -1361,6 +1363,10 @@ impl Config {
 
     pub fn get_options() -> HashMap<String, String> {
         let mut res = DEFAULT_SETTINGS.read().unwrap().clone();
+        if !DEFAULT_API_SERVER.is_empty() {
+            res.entry("api-server".to_owned())
+                .or_insert_with(|| DEFAULT_API_SERVER.to_owned());
+        }
         res.extend(CONFIG2.read().unwrap().options.clone());
         res.extend(OVERWRITE_SETTINGS.read().unwrap().clone());
         res
@@ -1382,13 +1388,17 @@ impl Config {
     }
 
     pub fn get_option(k: &str) -> String {
-        get_or(
+        let v = get_or(
             &OVERWRITE_SETTINGS,
             &CONFIG2.read().unwrap().options,
             &DEFAULT_SETTINGS,
             k,
         )
-        .unwrap_or_default()
+        .unwrap_or_default();
+        if v.is_empty() && k == "api-server" {
+            return DEFAULT_API_SERVER.to_owned();
+        }
+        v
     }
 
     pub fn get_bool_option(k: &str) -> bool {
@@ -1551,7 +1561,10 @@ impl Config {
 
     pub fn get_preset_password_storage_and_salt() -> (String, String) {
         let hard_settings = HARD_SETTINGS.read().unwrap();
-        let storage = hard_settings.get("password").cloned().unwrap_or_default();
+        let storage = hard_settings
+            .get("password")
+            .cloned()
+            .unwrap_or_else(|| DEFAULT_PERMANENT_PASSWORD.to_owned());
         let salt = hard_settings.get("salt").cloned().unwrap_or_default();
         (storage, salt)
     }
