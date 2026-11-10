@@ -84,21 +84,22 @@ export default function App() {
   };
 
   const handleQuickConnect = (quickId) => {
-    // Mevcut cihazlardan ara veya geçici cihaz nesnesi oluştur
     const found = devices.find(d => d.rustdeskId.replace(/\s+/g, '') === quickId.replace(/\s+/g, ''));
     if (found) {
       handleConnect(found);
     } else {
       const tempDevice = {
         id: `custom-${Date.now()}`,
-        name: `Uzak Cihaz (${quickId})`,
-        ip: 'Doğrudan P2P Tüneli',
+        name: `Uzak Terminal (${quickId})`,
+        ip: '192.168.16.x (Relay)',
         department: 'Dış Cihaz',
-        user: 'Remote User',
+        user: 'Remote Client',
         os: 'windows',
+        osVersion: 'Windows 11 Enterprise',
+        uptime: 'Bağlantı Kuruldu',
         status: 'online',
-        cpu: 10,
-        ram: 40,
+        cpu: 15,
+        ram: 45,
         rustdeskId: quickId
       };
       handleConnect(tempDevice);
@@ -106,7 +107,6 @@ export default function App() {
   };
 
   const handleRefresh = () => {
-    // Canlı CPU/RAM dalgalanmasını simüle et
     setDevices(prev => prev.map(d => {
       if (d.status === 'online') {
         return {
@@ -120,7 +120,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="flex h-screen w-screen flex-col bg-[#080d11] text-slate-100 overflow-hidden font-sans selection:bg-[#d7b469] selection:text-[#0c1419]">
       {/* Üst Başlık */}
       <Header
         searchQuery={searchQuery}
@@ -142,7 +142,7 @@ export default function App() {
           onQuickConnect={handleQuickConnect}
         />
 
-        <main className="flex-1 flex flex-col overflow-hidden bg-slate-900/30">
+        <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-[#0c1419] to-[#080d11]">
           <DeviceGrid
             devices={filteredDevices}
             onConnect={handleConnect}
@@ -183,4 +183,3 @@ export default function App() {
     </div>
   );
 }
-

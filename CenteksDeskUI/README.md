@@ -57,3 +57,4 @@ npm run dev
 # Canlı dağıtım için derle
 npm run build
 ```
+

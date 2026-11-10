@@ -5,13 +5,14 @@ import {
   Building2, 
   Server, 
   Terminal, 
-  Laptop, 
-  CircleDot, 
   Radio, 
   ShieldCheck, 
   SlidersHorizontal,
   ChevronRight,
-  Zap
+  Zap,
+  PhoneCall,
+  KeyRound,
+  ExternalLink
 } from 'lucide-react';
 import { DEPARTMENTS } from '../data/mockDevices';
 
@@ -25,7 +26,6 @@ export default function Sidebar({
 }) {
   const [quickId, setQuickId] = useState('');
 
-  // Departman ikon haritası
   const getDeptIcon = (id) => {
     switch(id) {
       case 'fabrika': return <Factory className="h-4 w-4" />;
@@ -36,7 +36,6 @@ export default function Sidebar({
     }
   };
 
-  // Departman bazında cihaz sayıları
   const getDeptCounts = (deptId) => {
     const deptDevices = deptId === 'all' 
       ? devices 
@@ -55,37 +54,41 @@ export default function Sidebar({
   };
 
   return (
-    <aside className="w-72 shrink-0 border-r border-slate-800/80 bg-slate-950/60 p-4 flex flex-col justify-between">
+    <aside className="w-72 shrink-0 border-r border-[#243540] bg-[#0c1419]/95 p-4 flex flex-col justify-between">
       <div className="space-y-6">
-        {/* Hızlı ID ile Bağlan Alanı */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 shadow-sm">
-          <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-slate-300">
-            <Zap className="h-3.5 w-3.5 text-amber-400" />
-            <span>Hızlı Uzak Bağlantı (ID)</span>
+        {/* Hızlı ID ile Bağlan Alanı - Centeks Gold & Navy Vurgusu */}
+        <div className="rounded-2xl border border-[#243540] bg-gradient-to-b from-[#142028] to-[#0c1419] p-3.5 shadow-md">
+          <div className="flex items-center justify-between mb-2">
+            <span className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
+              <Zap className="h-3.5 w-3.5 text-[#d7b469]" />
+              Hızlı Uzak Masaüstü
+            </span>
+            <span className="text-[10px] text-[#d7b469] font-mono font-semibold">P2P / Relay</span>
           </div>
           <form onSubmit={handleQuickSubmit} className="space-y-2">
             <input
               type="text"
               value={quickId}
               onChange={(e) => setQuickId(e.target.value)}
-              placeholder="RustDesk ID girin... (örn: 984 102 331)"
-              className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 font-mono"
+              placeholder="RustDesk ID... (örn: 984 102 331)"
+              className="w-full rounded-xl border border-[#243540] bg-[#080d11] px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:border-[#d7b469] focus:outline-none focus:ring-1 focus:ring-[#d7b469]/30 font-mono"
             />
             <button
               type="submit"
               disabled={!quickId.trim()}
-              className="w-full rounded-xl bg-slate-800 hover:bg-blue-600 disabled:opacity-40 disabled:hover:bg-slate-800 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#d7b469] hover:bg-[#c49e52] disabled:opacity-40 disabled:hover:bg-[#d7b469] py-2 text-xs font-bold text-[#0c1419] transition-all shadow-sm"
             >
-              Doğrudan Bağlan
+              <span>Doğrudan Bağlan</span>
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </form>
         </div>
 
         {/* Departman Bazlı Gruplar */}
         <div>
-          <div className="flex items-center justify-between px-2 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <div className="flex items-center justify-between px-2 mb-2 text-[10px] font-extrabold uppercase tracking-widest text-[#d7b469]/80 font-mono">
             <span>Departman Grupları</span>
-            <span>Aktif / Toplam</span>
+            <span>Online / Toplam</span>
           </div>
           <nav className="space-y-1">
             {DEPARTMENTS.map((dept) => {
@@ -96,30 +99,28 @@ export default function Sidebar({
                 <button
                   key={dept.id}
                   onClick={() => setSelectedDepartment(dept.id)}
-                  className={`group flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all ${
+                  className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                      : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                      ? 'bg-gradient-to-r from-[#1c2d38] to-[#142028] text-white border-l-4 border-[#d7b469] shadow-lg shadow-black/30'
+                      : 'text-slate-400 hover:bg-[#142028]/60 hover:text-slate-200'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}>
+                    <span className={isActive ? 'text-[#d7b469]' : 'text-slate-400 group-hover:text-slate-200'}>
                       {getDeptIcon(dept.id)}
                     </span>
-                    <span>{dept.name}</span>
+                    <span className={isActive ? 'font-bold text-white' : ''}>{dept.name}</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-mono font-bold ${
-                      isActive 
-                        ? 'bg-blue-700 text-white' 
-                        : 'bg-slate-800 text-slate-300'
-                    }`}>
-                      <span className="text-emerald-400">{online}</span>
-                      <span className="text-slate-500">/</span>
-                      <span>{total}</span>
-                    </span>
-                  </div>
+                  <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-mono font-bold ${
+                    isActive 
+                      ? 'bg-[#0c1419] text-[#d7b469] border border-[#d7b469]/30' 
+                      : 'bg-[#142028] text-slate-400'
+                  }`}>
+                    <span className="text-emerald-400">{online}</span>
+                    <span className="text-slate-600">/</span>
+                    <span>{total}</span>
+                  </span>
                 </button>
               );
             })}
@@ -128,15 +129,15 @@ export default function Sidebar({
 
         {/* Durum Filtreleri */}
         <div>
-          <div className="px-2 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Durum Filtresi
+          <div className="px-2 mb-2 text-[10px] font-extrabold uppercase tracking-widest text-[#d7b469]/80 font-mono">
+            Filtreleme
           </div>
-          <div className="flex rounded-xl bg-slate-900/80 p-1 border border-slate-800 text-xs">
+          <div className="flex rounded-xl bg-[#142028] p-1 border border-[#243540] text-xs">
             <button
               onClick={() => setStatusFilter('all')}
               className={`flex-1 rounded-lg py-1.5 font-medium transition-all ${
                 statusFilter === 'all' 
-                  ? 'bg-slate-800 text-white shadow-sm' 
+                  ? 'bg-[#1c2d38] text-white shadow-sm font-semibold' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -144,9 +145,9 @@ export default function Sidebar({
             </button>
             <button
               onClick={() => setStatusFilter('online')}
-              className={`flex-1 rounded-lg py-1.5 font-medium flex items-center justify-center gap-1 transition-all ${
+              className={`flex-1 rounded-lg py-1.5 font-medium flex items-center justify-center gap-1.5 transition-all ${
                 statusFilter === 'online' 
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -155,9 +156,9 @@ export default function Sidebar({
             </button>
             <button
               onClick={() => setStatusFilter('offline')}
-              className={`flex-1 rounded-lg py-1.5 font-medium flex items-center justify-center gap-1 transition-all ${
+              className={`flex-1 rounded-lg py-1.5 font-medium flex items-center justify-center gap-1.5 transition-all ${
                 statusFilter === 'offline' 
-                  ? 'bg-slate-800 text-slate-300 border border-slate-700' 
+                  ? 'bg-[#1c2d38] text-slate-300 font-semibold' 
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -168,33 +169,38 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Alt Bilgi & Sunucu Sağlığı */}
-      <div className="pt-4 border-t border-slate-800/80">
-        <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-3 text-[11px] space-y-1.5">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
-              Rendezvous ID Sunucu
-            </span>
-            <span className="text-emerald-400 font-semibold">21116 Aktif</span>
+      {/* Alt Kurumsal Bilgi Kutusu - CENTEKS Bilgileri */}
+      <div className="pt-4 border-t border-[#243540]">
+        <div className="rounded-xl border border-[#243540] bg-gradient-to-br from-[#142028] to-[#080d11] p-3 text-[11px] space-y-2">
+          <div className="flex items-center justify-between pb-1.5 border-b border-[#243540]/60">
+            <span className="font-bold text-white tracking-wide">CENTEKS GROUP</span>
+            <span className="text-[10px] text-[#d7b469] font-mono font-semibold">IT Destek</span>
           </div>
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <Radio className="h-3.5 w-3.5 text-indigo-400" />
-              Relay Aktarma
-            </span>
-            <span className="text-emerald-400 font-semibold">21117 Aktif</span>
+          
+          <div className="space-y-1 text-slate-400 text-[10px] font-mono">
+            <div className="flex items-center justify-between">
+              <span>Sunucu:</span>
+              <span className="text-slate-200">destek.centeks.com</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Panel URL:</span>
+              <span className="text-[#d7b469]">panel.centeks.com</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Şifreleme:</span>
+              <span className="text-emerald-400">Ed25519 + ChaCha20</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <CircleDot className="h-3.5 w-3.5 text-emerald-400" />
-              API & WebRTC
+
+          <div className="pt-1.5 flex items-center justify-between text-[10px] text-slate-400 border-t border-[#243540]/60">
+            <span className="flex items-center gap-1 text-[#d7b469]">
+              <PhoneCall className="h-3 w-3" />
+              Dahili: 1104 / 1105
             </span>
-            <span className="text-slate-300 font-mono">panel.centeks.com</span>
+            <span className="text-slate-500">v1.5.3-prod</span>
           </div>
         </div>
       </div>
     </aside>
   );
 }
-
