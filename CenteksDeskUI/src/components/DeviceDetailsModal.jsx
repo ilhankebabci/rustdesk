@@ -406,3 +406,4 @@ export default function DeviceDetailsModal({ device, onClose, onConnect, onTermi
     </div>
   );
 }
+

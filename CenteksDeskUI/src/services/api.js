@@ -63,27 +63,30 @@ export class CenteksRmmService {
   }
 
   /**
-   * İşletim Sistemine Göre Kurumsal Centeks Destek Ajanı İndirir
-   * @param {'windows' | 'linux' | 'macos'} os - Hedef platform
+   * İşletim Sistemine ve Tipine Göre Kurumsal Centeks Destek Ajanı İndirir
+   * @param {'installer' | 'portable' | 'windows' | 'linux' | 'macos'} type - Dağıtım tipi
+   * @param {string} department - Hedef departman grubu
    */
-  static async handleDownloadAgent(os) {
-    console.log(`[Centeks RMM] handleDownloadAgent tetiklendi: Platform = ${os}`);
+  static async handleDownloadAgent(type = 'portable', department = 'fabrika') {
+    console.log(`[Centeks RMM] handleDownloadAgent tetiklendi: Tip = ${type}, Departman = ${department}`);
     
-    // Doğrudan derlediğimiz ve GitHub Actions'ta saklanan hazır portable binary veya sunucu adresi
+    // Doğrudan derlediğimiz ve panelde sunulan kurumsal ikili paketler
     const downloadUrls = {
-      windows: 'https://panel.centeks.com/downloads/CENTEKS-Destek-Windows-x64.exe',
-      linux: 'https://panel.centeks.com/downloads/centeks-destek-linux-x86_64.AppImage',
-      macos: 'https://panel.centeks.com/downloads/CENTEKS-Destek-macOS.dmg'
+      installer: `https://panel.centeks.com/downloads/CENTEKS-Destek-Setup-x64.exe?group=${department}`,
+      portable: `https://panel.centeks.com/downloads/CENTEKS-Destek-Portable-x64.exe?group=${department}`,
+      windows: `https://panel.centeks.com/downloads/CENTEKS-Destek-Portable-x64.exe?group=${department}`,
+      linux: `https://panel.centeks.com/downloads/centeks-destek-linux-x86_64.AppImage?group=${department}`,
+      macos: `https://panel.centeks.com/downloads/CENTEKS-Destek-macOS.dmg?group=${department}`
     };
 
-    const targetUrl = downloadUrls[os] || downloadUrls.windows;
+    const targetUrl = downloadUrls[type] || downloadUrls.portable;
     
-    // Simüle edilmiş indirme bildirimi
     return {
       success: true,
-      os,
+      type,
+      department,
       url: targetUrl,
-      filename: targetUrl.split('/').pop()
+      filename: targetUrl.split('?')[0].split('/').pop()
     };
   }
 

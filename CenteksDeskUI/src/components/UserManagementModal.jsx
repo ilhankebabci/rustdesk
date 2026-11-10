@@ -506,3 +506,4 @@ export default function UserManagementModal({ onClose }) {
     </div>
   );
 }
+
