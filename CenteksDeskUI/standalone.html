@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CENTEKS Destek | Kurumsal RMM & Uzak Masaüstü Yönetim Paneli</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b1320'/%3E%3Cpath d='M65 24 C45 16, 22 28, 22 50 C22 72, 45 84, 65 76' fill='none' stroke='%23d7b469' stroke-width='11' stroke-linecap='round'/%3E%3Cpath d='M50 38 C40 33, 34 41, 34 50 C34 59, 40 67, 50 62' fill='none' stroke='%23ffffff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            centeks: {
+              gold: '#d7b469',
+              'gold-hover': '#c5a052',
+              'gold-light': '#f3e8cf',
+              dark: '#080d16',
+              navy: '#0d1624',
+              surface: '#131f33',
+              card: '#182740',
+              border: '#223657',
+              accent: '#3b82f6',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & ReactDOM 18 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel Standalone for JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #080d16;
+      color: #f1f5f9;
+      user-select: none;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d1624;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #223657;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d7b469;
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.05); }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-centeks-dark text-slate-100 antialiased overflow-x-hidden">
+  <div id="root"></div>
+
+  <!-- React Application Source -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- Mock Initial Data ---
+    const INITIAL_DEVICES = [
+      {
+        id: "SRV-ERP-01",
+        rustdeskId: "912384712",
+        name: "Fabrika Ana ERP Sunucusu",
+        user: "SYSTEM / Administrator",
+        ip: "192.168.10.15",
+        publicIp: "88.255.120.44",
+        department: "Sunucular",
+        os: "windows",
+        osName: "Windows Server 2022 Datacenter",
+        status: "online",
+        cpu: 18,
+        ram: 64,
+        disk: 42,
+        uptime: "48 gün 14 saat",
+        lastSeen: "Şimdi aktif"
+      },
+      {
+        id: "SRV-DC-01",
+        rustdeskId: "847291038",
+        name: "Domain Controller & DNS",
+        user: "CENTEKS\\admin",
+        ip: "192.168.10.10",
+        publicIp: "88.255.120.44",
+        department: "Sunucular",
+        os: "windows",
+        osName: "Windows Server 2019",
+        status: "online",
+        cpu: 9,
+        ram: 38,
+        disk: 28,
+        uptime: "124 gün 02 saat",
+        lastSeen: "Şimdi aktif"
+      },
+      {
+        id: "PC-FAB-CNC-04",
+        rustdeskId: "518392019",
+        name: "Dokuma Hat-4 CNC Operatör",
+        user: "operatör_dokuma",
+        ip: "192.168.20.104",
+        publicIp: "88.255.120.45",
+        department: "Fabrika",
+        os: "windows",
+        osName: "Windows 10 Pro IoT",
+        status: "online",
+        cpu: 34,
+        ram: 52,
+        disk: 68,
+        uptime: "14 gün 06 saat",
+        lastSeen: "Şimdi aktif"
+      },
+      {
+        id: "PC-MUH-02",
+        rustdeskId: "639201847",
+        name: "Muhasebe / Bordro Terminali",
+        user: "ayse.muhasebe",
+        ip: "192.168.30.22",
+        publicIp: "88.255.120.46",
+        department: "Ofis / Muhasebe",
+        os: "windows",
+        osName: "Windows 11 Pro 23H2",
+        status: "online",
+        cpu: 12,
+        ram: 45,
+        disk: 51,
+        uptime: "3 gün 08 saat",
+        lastSeen: "Şimdi aktif"
+      },
+      {
+        id: "LNX-NVR-CAM",
+        rustdeskId: "729401859",
+        name: "Kamera Güvenlik Kayıt NVR",
+        user: "security_admin",
+        ip: "192.168.40.5",
+        publicIp: "88.255.120.47",
+        department: "Bilgi İşlem",
+        os: "linux",
+        osName: "Ubuntu 22.04 LTS (Jammy)",
+        status: "online",
+        cpu: 48,
+        ram: 72,
+        disk: 84,
+        uptime: "210 gün 11 saat",
+        lastSeen: "Şimdi aktif"
+      },
+      {
+        id: "PC-FAB-BOYA-01",
+        rustdeskId: "402859182",
+        name: "Boya Laboratuvar Spektro PC",
+        user: "lab_teknisyen",
+        ip: "192.168.20.210",
+        publicIp: "88.255.120.45",
+        department: "Fabrika",
+        os: "windows",
+        osName: "Windows 10 Pro",
+        status: "offline",
+        cpu: 0,
+        ram: 0,
+        disk: 35,
+        uptime: "Kapalı",
+        lastSeen: "2 saat önce"
+      }
+    ];
+
+    const AUDIT_LOGS = [
+      { id: 1, user: "İlhan K.", role: "Admin", device: "SRV-ERP-01", ip: "192.168.10.15", action: "Uzak Masaüstü Bağlantısı", time: "Bugün 08:15", duration: "24 dk" },
+      { id: 2, user: "İlhan K.", role: "Admin", device: "PC-FAB-CNC-04", ip: "192.168.20.104", action: "PowerShell Konsolu", time: "Bugün 07:42", duration: "8 dk" },
+      { id: 3, user: "Destek Operatörü", role: "Operator", device: "PC-MUH-02", ip: "192.168.30.22", action: "Dosya Transferi (Yedek Alma)", time: "Dün 17:30", duration: "12 dk" },
+      { id: 4, user: "İlhan K.", role: "Admin", device: "LNX-NVR-CAM", ip: "192.168.40.5", action: "Servis Yeniden Başlatma", time: "Dün 14:10", duration: "4 dk" },
+    ];
+
+    function App() {
+      const [devices, setDevices] = useState(INITIAL_DEVICES);
+      const [activeDepartment, setActiveDepartment] = useState("Tümü");
+      const [searchQuery, setSearchQuery] = useState("");
+      const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'table'
+
+      // Modals State
+      const [remoteSession, setRemoteSession] = useState(null);
+      const [terminalDevice, setTerminalDevice] = useState(null);
+      const [fileManagerDevice, setFileManagerDevice] = useState(null);
+      const [detailsDevice, setDetailsDevice] = useState(null);
+      const [showDownloadModal, setShowDownloadModal] = useState(false);
+      const [showAccountModal, setShowAccountModal] = useState(false);
+      const [showAuditLogs, setShowAuditLogs] = useState(false);
+      const [showUserMenu, setShowUserMenu] = useState(false);
+      const [copiedText, setCopiedText] = useState(null);
+
+      // Terminal state
+      const [terminalCommands, setTerminalCommands] = useState([
+        "Windows PowerShell - CENTEKS Güvenli Uzak Oturum v2.4",
+        "Telif Hakkı (C) CENTEKS Group Bilgi İşlem Departmanı. Tüm hakları saklıdır.",
+        "Hedef sistem: Fabrika Ana ERP Sunucusu [192.168.10.15]",
+        "Hazır. Komut girmek için yazıp Enter'a basınız (Örn: dir, ipconfig, systeminfo)..."
+      ]);
+      const [cmdInput, setCmdInput] = useState("");
+
+      // Copy Helper
+      const handleCopy = (text, key) => {
+        navigator.clipboard.writeText(text);
+        setCopiedText(key);
+        setTimeout(() => setCopiedText(null), 2000);
+      };
+
+      // Filtered Devices
+      const filteredDevices = useMemo(() => {
+        return devices.filter(d => {
+          const matchesDept = activeDepartment === "Tümü" || d.department === activeDepartment;
+          const query = searchQuery.toLowerCase().trim();
+          const matchesSearch = !query || 
+            d.name.toLowerCase().includes(query) ||
+            d.ip.toLowerCase().includes(query) ||
+            d.user.toLowerCase().includes(query) ||
+            d.rustdeskId.includes(query);
+          return matchesDept && matchesSearch;
+        });
+      }, [devices, activeDepartment, searchQuery]);
+
+      // Counts per department
+      const departmentCounts = useMemo(() => {
+        const counts = { "Tümü": devices.length };
+        ["Fabrika", "Ofis / Muhasebe", "Sunucular", "Bilgi İşlem"].forEach(dept => {
+          counts[dept] = devices.filter(d => d.department === dept).length;
+        });
+        return counts;
+      }, [devices]);
+
+      // Connect Action
+      const handleConnect = (device) => {
+        // RustDesk URI scheme protocol invoke
+        window.location.href = `rustdesk://${device.rustdeskId}`;
+        setRemoteSession(device);
+      };
+
+      // Terminal submit
+      const handleTerminalSubmit = (e) => {
+        e.preventDefault();
+        if (!cmdInput.trim()) return;
+        const input = cmdInput.trim();
+        const newLogs = [...terminalCommands, `PS C:\\CenteksOps> ${input}`];
+
+        if (input.toLowerCase() === "clear" || input.toLowerCase() === "cls") {
+          setTerminalCommands(["Konsol temizlendi. Hazır."]);
+        } else if (input.toLowerCase() === "ipconfig") {
+          newLogs.push("Windows IP Yapılandırması:");
+          newLogs.push(`   IPv4 Adresi . . . . . . . . . . . : ${terminalDevice?.ip || '192.168.10.15'}`);
+          newLogs.push("   Alt Ağ Maskesi. . . . . . . . . . : 255.255.255.0");
+          newLogs.push("   Varsayılan Ağ Geçidi. . . . . . . : 192.168.10.1");
+          setTerminalCommands(newLogs);
+        } else if (input.toLowerCase() === "dir") {
+          newLogs.push(" Dizin: C:\\CenteksOps");
+          newLogs.push("Mod            Son Yazma Zamanı      Uzunluk Ad");
+          newLogs.push("----           ----------------      ------- --");
+          newLogs.push("d-----         11.11.2026  07:30             Yedekler");
+          newLogs.push("d-----         10.11.2026  16:45             Scripts");
+          newLogs.push("-a----         11.11.2026  08:00       45821 CenteksService.exe");
+          newLogs.push("-a----         09.11.2026  12:15        2048 config.json");
+          setTerminalCommands(newLogs);
+        } else {
+          newLogs.push(`[${terminalDevice?.id}] komut başarıyla yürütüldü: ${input} (Çıkış kodu: 0)`);
+          setTerminalCommands(newLogs);
+        }
+        setCmdInput("");
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-centeks-dark text-slate-100">
+          
+          {/* HEADER */}
+          <header className="sticky top-0 z-40 bg-centeks-navy/95 backdrop-blur-md border-b border-centeks-border px-6 py-3.5 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-4">
+              {/* Crisp Inline Centeks Emblem */}
+              <div className="flex items-center gap-3">
+                <svg className="w-10 h-10 drop-shadow-md" viewBox="0 0 100 100" fill="none">
+                  <rect width="100" height="100" rx="18" fill="#131f33" stroke="#223657" stroke-width="2" />
+                  <path d="M68 22 C44 14, 18 26, 18 50 C18 74, 44 86, 68 78" stroke="#d7b469" stroke-width="11" stroke-linecap="round" />
+                  <path d="M52 38 C42 33, 34 40, 34 50 C34 60, 42 67, 52 62" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" />
+                </svg>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-lg tracking-wider text-white">CENTEKS</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-centeks-gold/20 text-centeks-gold border border-centeks-gold/40">
+                      DESTEK
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <span>Bilgi İşlem Departmanı</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 text-centeks-gold font-medium">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                      Dahili: 101
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Central Search Bar */}
+            <div className="flex-1 max-w-xl mx-8">
+              <div className="relative">
+                <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input 
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cihaz adı, IP, kullanıcı veya RustDesk ID ile canlı ara..."
+                  className="w-full bg-centeks-surface border border-centeks-border rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-400 focus:outline-none focus:border-centeks-gold focus:ring-1 focus:ring-centeks-gold transition"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white">✕</button>
+                )}
+              </div>
+            </div>
+
+            {/* Header Right Actions */}
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setShowAuditLogs(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-centeks-surface hover:bg-centeks-card border border-centeks-border text-xs font-medium text-slate-300 transition"
+                title="Güvenlik & Bağlantı Olay Günlüğü"
+              >
+                <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Olay Günlüğü
+              </button>
+
+              <button 
+                onClick={() => setShowDownloadModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-centeks-gold to-centeks-gold-hover text-centeks-dark font-semibold text-xs shadow-md shadow-centeks-gold/10 hover:shadow-centeks-gold/25 transition active:scale-95"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                + Yeni Ajan / İstemci İndir
+              </button>
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl hover:bg-centeks-surface border border-transparent hover:border-centeks-border transition"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-centeks-gold text-centeks-dark font-bold text-xs flex items-center justify-center shadow">
+                    İK
+                  </div>
+                  <div className="text-left hidden sm:block">
+                    <div className="text-xs font-semibold text-white">İlhan K.</div>
+                    <div className="text-[10px] text-centeks-gold font-medium">Site Administrator</div>
+                  </div>
+                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-centeks-surface border border-centeks-border rounded-xl shadow-2xl py-2 z-50 animate-fadeIn">
+                    <div className="px-4 py-2 border-b border-centeks-border">
+                      <p className="text-xs font-semibold text-white">İlhan Kebabcı</p>
+                      <p className="text-[11px] text-slate-400">bilgiislem@centeks.com</p>
+                      <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        Tam Yetkili Yönetici (Super Admin)
+                      </span>
+                    </div>
+                    <div className="py-1">
+                      <button 
+                        onClick={() => { setShowAccountModal(true); setShowUserMenu(false); }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-200 hover:bg-centeks-card flex items-center gap-2 transition"
+                      >
+                        <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
+                        Hesap Ayarları & 2FA Güvenlik
+                      </button>
+                      <button 
+                        onClick={() => { setShowAuditLogs(true); setShowUserMenu(false); }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-200 hover:bg-centeks-card flex items-center gap-2 transition"
+                      >
+                        <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Oturum & Denetim Günlüğü
+                      </button>
+                      <div className="border-t border-centeks-border my-1"></div>
+                      <button 
+                        onClick={() => { alert('Oturum kapatıldı.'); setShowUserMenu(false); }}
+                        className="w-full text-left px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition"
+                      >
+                        <svg className="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        Güvenli Çıkış Yap
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN LAYOUT */}
+          <div className="flex-1 flex overflow-hidden">
+            
+            {/* SIDEBAR */}
+            <aside className="w-64 bg-centeks-navy/80 border-r border-centeks-border flex flex-col p-4 shrink-0">
+              <div className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-3 px-2">
+                Departmanlar & Gruplar
+              </div>
+              <nav className="space-y-1">
+                {["Tümü", "Fabrika", "Ofis / Muhasebe", "Sunucular", "Bilgi İşlem"].map(dept => {
+                  const isActive = activeDepartment === dept;
+                  const count = departmentCounts[dept] || 0;
+                  return (
+                    <button
+                      key={dept}
+                      onClick={() => setActiveDepartment(dept)}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${
+                        isActive 
+                          ? 'bg-centeks-gold text-centeks-dark font-bold shadow-md shadow-centeks-gold/15' 
+                          : 'text-slate-300 hover:bg-centeks-surface hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-centeks-dark' : 'bg-slate-400'}`}></span>
+                        <span>{dept}</span>
+                      </div>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+                        isActive ? 'bg-centeks-dark/20 text-centeks-dark font-extrabold' : 'bg-centeks-surface text-slate-400 border border-centeks-border'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* Server Gateway Status Box */}
+              <div className="mt-auto pt-4 border-t border-centeks-border/60">
+                <div className="bg-centeks-surface/70 rounded-xl p-3 border border-centeks-border/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-semibold text-slate-300">Merkez Ağ Durumu</span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Aktif
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
+                    <div>Rendezvous: <span className="text-slate-200">destek.centeks.com</span></div>
+                    <div>Port: <span className="text-slate-200">21116 / 21117</span></div>
+                    <div>Panel: <span className="text-centeks-gold">panel.centeks.com</span></div>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* CONTENT AREA */}
+            <main className="flex-1 overflow-y-auto p-6">
+              
+              {/* Toolbar */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                    <span>{activeDepartment}</span>
+                    <span className="text-xs font-medium text-slate-400 px-2 py-0.5 rounded bg-centeks-surface border border-centeks-border">
+                      {filteredDevices.length} Cihaz
+                    </span>
+                  </h1>
+                  <p className="text-xs text-slate-400 mt-0.5">Uzak masaüstü, PowerShell ve dosya yönetimi için hedef cihazı seçiniz.</p>
+                </div>
+
+                {/* View Mode Toggle */}
+                <div className="flex items-center bg-centeks-surface border border-centeks-border rounded-xl p-1 gap-1">
+                  <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${viewMode === 'grid' ? 'bg-centeks-card text-centeks-gold shadow' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    Grid Kartlar
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('table')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${viewMode === 'table' ? 'bg-centeks-card text-centeks-gold shadow' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    Detaylı Tablo
+                  </button>
+                </div>
+              </div>
+
+              {/* GRID VIEW */}
+              {viewMode === 'grid' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filteredDevices.map(device => {
+                    const isOnline = device.status === 'online';
+                    return (
+                      <div 
+                        key={device.id}
+                        className="bg-centeks-card/90 border border-centeks-border rounded-2xl p-5 hover:border-centeks-gold/60 transition shadow-lg hover:shadow-2xl hover:shadow-centeks-gold/5 flex flex-col justify-between"
+                      >
+                        <div>
+                          {/* Card Top */}
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-white group-hover:text-centeks-gold">{device.name}</span>
+                              </div>
+                              <div className="text-xs text-slate-400 font-mono mt-0.5">{device.ip} • <span className="text-centeks-gold">{device.department}</span></div>
+                            </div>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              isOnline ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700/40 text-slate-400 border border-slate-700'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
+                              {isOnline ? 'Online' : 'Offline'}
+                            </span>
+                          </div>
+
+                          {/* OS & User details */}
+                          <div className="bg-centeks-surface/70 rounded-xl p-3 border border-centeks-border/60 text-xs space-y-1.5 my-3">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Kullanıcı:</span>
+                              <span className="font-medium text-slate-200">{device.user}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">İşletim Sistemi:</span>
+                              <span className="font-medium text-slate-200">{device.osName}</span>
+                            </div>
+                            <div className="flex justify-between font-mono">
+                              <span className="text-slate-400">RustDesk ID:</span>
+                              <span className="font-bold text-centeks-gold">{device.rustdeskId}</span>
+                            </div>
+                          </div>
+
+                          {/* Metrics (CPU / RAM) */}
+                          {isOnline ? (
+                            <div className="grid grid-cols-2 gap-3 my-3">
+                              <div className="bg-centeks-surface/40 p-2 rounded-lg border border-centeks-border/40">
+                                <div className="flex justify-between text-[11px] mb-1">
+                                  <span className="text-slate-400">CPU</span>
+                                  <span className="font-mono text-slate-200">{device.cpu}%</span>
+                                </div>
+                                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                  <div className="bg-centeks-gold h-full rounded-full" style={{ width: `${device.cpu}%` }}></div>
+                                </div>
+                              </div>
+                              <div className="bg-centeks-surface/40 p-2 rounded-lg border border-centeks-border/40">
+                                <div className="flex justify-between text-[11px] mb-1">
+                                  <span className="text-slate-400">RAM</span>
+                                  <span className="font-mono text-slate-200">{device.ram}%</span>
+                                </div>
+                                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                  <div className="bg-blue-400 h-full rounded-full" style={{ width: `${device.ram}%` }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="py-2.5 text-center text-xs text-slate-500 italic">Cihaz şu an çevrimdışı. Son görülme: {device.lastSeen}</div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-centeks-border/80 mt-2">
+                          <button 
+                            disabled={!isOnline}
+                            onClick={() => handleConnect(device)}
+                            className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-centeks-gold/15 hover:bg-centeks-gold text-centeks-gold hover:text-centeks-dark font-bold text-xs border border-centeks-gold/30 hover:border-centeks-gold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Uzak Masaüstü Bağlantısı"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            Bağlan
+                          </button>
+                          
+                          <button 
+                            disabled={!isOnline}
+                            onClick={() => setTerminalDevice(device)}
+                            className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-centeks-surface hover:bg-centeks-border text-slate-200 text-xs border border-centeks-border transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Arka Plan PowerShell Konsolu"
+                          >
+                            <svg className="w-3.5 h-3.5 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            Terminal
+                          </button>
+
+                          <button 
+                            disabled={!isOnline}
+                            onClick={() => setFileManagerDevice(device)}
+                            className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-centeks-surface hover:bg-centeks-border text-slate-200 text-xs border border-centeks-border transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Çift Taraflı Dosya Gezgini"
+                          >
+                            <svg className="w-3.5 h-3.5 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                            Dosyalar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* TABLE VIEW */}
+              {viewMode === 'table' && (
+                <div className="bg-centeks-card border border-centeks-border rounded-2xl overflow-hidden shadow-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-centeks-surface text-slate-400 uppercase font-semibold border-b border-centeks-border">
+                      <tr>
+                        <th className="py-3 px-4">Durum</th>
+                        <th className="py-3 px-4">Cihaz Adı</th>
+                        <th className="py-3 px-4">Departman</th>
+                        <th className="py-3 px-4">IP / RustDesk ID</th>
+                        <th className="py-3 px-4">İşletim Sistemi</th>
+                        <th className="py-3 px-4">Kullanıcı</th>
+                        <th className="py-3 px-4 text-right">İşlemler</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-centeks-border/60">
+                      {filteredDevices.map(device => {
+                        const isOnline = device.status === 'online';
+                        return (
+                          <tr key={device.id} className="hover:bg-centeks-surface/50 transition">
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                isOnline ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700/50 text-slate-400'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
+                                {isOnline ? 'Online' : 'Offline'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-bold text-white">{device.name}</td>
+                            <td className="py-3 px-4 text-centeks-gold">{device.department}</td>
+                            <td className="py-3 px-4 font-mono text-slate-300">{device.ip} <span className="text-slate-500">|</span> {device.rustdeskId}</td>
+                            <td className="py-3 px-4 text-slate-300">{device.osName}</td>
+                            <td className="py-3 px-4 text-slate-300">{device.user}</td>
+                            <td className="py-3 px-4 text-right space-x-2">
+                              <button 
+                                disabled={!isOnline}
+                                onClick={() => handleConnect(device)}
+                                className="px-2.5 py-1 rounded bg-centeks-gold text-centeks-dark font-bold hover:bg-centeks-gold-hover disabled:opacity-30"
+                              >
+                                Bağlan
+                              </button>
+                              <button 
+                                disabled={!isOnline}
+                                onClick={() => setTerminalDevice(device)}
+                                className="px-2.5 py-1 rounded bg-centeks-surface border border-centeks-border text-slate-200 hover:text-white disabled:opacity-30"
+                              >
+                                Terminal
+                              </button>
+                              <button 
+                                disabled={!isOnline}
+                                onClick={() => setFileManagerDevice(device)}
+                                className="px-2.5 py-1 rounded bg-centeks-surface border border-centeks-border text-slate-200 hover:text-white disabled:opacity-30"
+                              >
+                                Dosyalar
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </main>
+          </div>
+
+          {/* MODAL 1: REMOTE DESKTOP LIVE VIEWPORT */}
+          {remoteSession && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col animate-fadeIn">
+              {/* Floating Top Control Toolbar */}
+              <div className="h-14 bg-centeks-navy/95 border-b border-centeks-border px-6 flex items-center justify-between shadow-2xl">
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <div>
+                    <div className="text-xs font-bold text-white">{remoteSession.name} ({remoteSession.ip})</div>
+                    <div className="text-[10px] text-centeks-gold font-mono">RustDesk ID: {remoteSession.rustdeskId} • 1080p @ 60 FPS • WebRTC Şifreli</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => alert('Ctrl+Alt+Del sinyali gönderildi.')}
+                    className="px-3 py-1.5 rounded-lg bg-centeks-surface hover:bg-centeks-card border border-centeks-border text-xs text-slate-200 font-medium transition"
+                  >
+                    Ctrl+Alt+Del Gönder
+                  </button>
+                  <button 
+                    onClick={() => alert('Pano / Clipboard içeriği senkronize edildi.')}
+                    className="px-3 py-1.5 rounded-lg bg-centeks-surface hover:bg-centeks-card border border-centeks-border text-xs text-slate-200 font-medium transition"
+                  >
+                    Pano Senkron
+                  </button>
+                  <select className="bg-centeks-surface border border-centeks-border rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none">
+                    <option>Monitör 1 (1920x1080)</option>
+                    <option>Monitör 2 (1920x1080)</option>
+                    <option>Tüm Ekranlar</option>
+                  </select>
+                  <select className="bg-centeks-surface border border-centeks-border rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none">
+                    <option>Kalite: Yüksek (HD)</option>
+                    <option>Kalite: Dengeli</option>
+                    <option>Kalite: Düşük Bant Genişliği</option>
+                  </select>
+                  <button 
+                    onClick={() => setRemoteSession(null)}
+                    className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow transition"
+                  >
+                    Bağlantıyı Kes ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Viewport Canvas Simulation */}
+              <div className="flex-1 bg-slate-950 flex items-center justify-center relative overflow-hidden">
+                <div className="w-[92%] h-[88%] bg-slate-900 border-2 border-centeks-border/80 rounded-xl shadow-2xl flex flex-col justify-between p-8 relative overflow-hidden">
+                  <div className="flex justify-between items-center text-xs text-slate-400">
+                    <div className="font-mono">CENTEKS REMOTE DESKTOP ENGINE [Active Session]</div>
+                    <div>Gecikme (Latency): <span className="text-emerald-400 font-bold">12 ms</span></div>
+                  </div>
+
+                  <div className="text-center my-auto">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-centeks-gold/20 text-centeks-gold flex items-center justify-center mb-4 border border-centeks-gold/40">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-1">{remoteSession.name}</h3>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      Yerel RustDesk istemcisi arka planda tetiklendi. WebRTC canlı canvas akışı doğrudan RustDesk/MeshCentral röle sunucumuz üzerinden aktarılmaktadır.
+                    </p>
+                    <div className="mt-4 inline-block px-4 py-2 rounded-xl bg-centeks-surface border border-centeks-border text-xs font-mono text-centeks-gold">
+                      rustdesk://{remoteSession.rustdeskId}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[11px] text-slate-500 border-t border-slate-800 pt-3">
+                    <div>İstemci: CENTEKS Destek v1.5.3</div>
+                    <div>AES-256 GCM Şifreleme Aktif</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 2: SILENT POWERSHELL TERMINAL */}
+          {terminalDevice && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-slate-950 border border-centeks-border rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col h-[520px]">
+                {/* Terminal Header */}
+                <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-rose-500 inline-block cursor-pointer" onClick={() => setTerminalDevice(null)}></span>
+                    <span className="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                    <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                    <span className="text-xs font-mono font-bold text-slate-300 ml-2">
+                      PowerShell v7.4 — {terminalDevice.name} ({terminalDevice.ip})
+                    </span>
+                  </div>
+                  <button onClick={() => setTerminalDevice(null)} className="text-slate-400 hover:text-white text-xs">✕ Kapat</button>
+                </div>
+
+                {/* Terminal Body */}
+                <div className="flex-1 p-4 font-mono text-xs overflow-y-auto space-y-1 text-emerald-400 bg-slate-950">
+                  {terminalCommands.map((line, idx) => (
+                    <div key={idx} className="leading-relaxed whitespace-pre-wrap">{line}</div>
+                  ))}
+                </div>
+
+                {/* Terminal Input */}
+                <form onSubmit={handleTerminalSubmit} className="bg-slate-900 border-t border-slate-800 p-2.5 flex items-center gap-2">
+                  <span className="text-xs font-mono text-centeks-gold font-bold pl-2">PS C:\CenteksOps&gt;</span>
+                  <input 
+                    type="text"
+                    value={cmdInput}
+                    onChange={(e) => setCmdInput(e.target.value)}
+                    placeholder="komut yazın (ipconfig, dir, systeminfo, clear)..."
+                    className="flex-1 bg-transparent text-xs font-mono text-white focus:outline-none placeholder-slate-600"
+                    autoFocus
+                  />
+                  <button type="submit" className="px-3 py-1 rounded bg-centeks-gold text-centeks-dark font-bold text-xs">Çalıştır</button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 3: FILE MANAGER */}
+          {fileManagerDevice && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-centeks-navy border border-centeks-border rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col h-[560px]">
+                <div className="bg-centeks-surface border-b border-centeks-border px-5 py-3.5 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                      Çift Taraflı Dosya Transferi — {fileManagerDevice.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">Yerel bilgisayar ile hedef sistem arasında güvenli SFTP aktarımı</p>
+                  </div>
+                  <button onClick={() => setFileManagerDevice(null)} className="text-slate-400 hover:text-white text-xs">✕ Kapat</button>
+                </div>
+
+                {/* Dual Panes */}
+                <div className="flex-1 grid grid-cols-2 divide-x divide-centeks-border overflow-hidden">
+                  {/* Left: Local PC */}
+                  <div className="p-4 flex flex-col">
+                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-centeks-border">
+                      <span className="text-xs font-bold text-centeks-gold">Yerel Bilgisayar (Bu Makine)</span>
+                      <span className="text-[11px] font-mono text-slate-400">C:\Users\Admin\Downloads</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-1 text-xs">
+                      {["CenteksDestek-x86_64.exe (18.4 MB)", "fabrika_guncelleme_paketi.zip (4.2 MB)", "vpn_sertifika.ovpn (2 KB)", "rapor_2026.xlsx (120 KB)"].map((f, i) => (
+                        <div key={i} className="p-2 rounded hover:bg-centeks-surface flex items-center justify-between group cursor-pointer">
+                          <span className="text-slate-300 group-hover:text-white">📄 {f}</span>
+                          <button onClick={() => alert(`${f} uzak makineye yüklendi!`)} className="text-[10px] px-2 py-0.5 rounded bg-centeks-surface text-centeks-gold hover:bg-centeks-gold hover:text-centeks-dark font-bold">
+                            Gönder ➔
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: Remote PC */}
+                  <div className="p-4 flex flex-col bg-centeks-dark/50">
+                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-centeks-border">
+                      <span className="text-xs font-bold text-emerald-400">Uzak Hedef ({fileManagerDevice.name})</span>
+                      <span className="text-[11px] font-mono text-slate-400">C:\CenteksData\Backups</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-1 text-xs">
+                      {["database_backup_2026.sql (245 MB)", "error_logs.txt (42 KB)", "erp_service_config.xml (12 KB)", "license.key (1 KB)"].map((f, i) => (
+                        <div key={i} className="p-2 rounded hover:bg-centeks-surface flex items-center justify-between group cursor-pointer">
+                          <span className="text-slate-300 group-hover:text-white">📄 {f}</span>
+                          <button onClick={() => alert(`${f} yerel bilgisayara indirildi!`)} className="text-[10px] px-2 py-0.5 rounded bg-centeks-surface text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 font-bold">
+                            ⬅ İndir
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-centeks-surface/90 border-t border-centeks-border p-3 flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Sürükle-bırak veya yukarıdaki butonlarla hızlı aktarım yapabilirsiniz.</span>
+                  <button onClick={() => setFileManagerDevice(null)} className="px-4 py-1.5 rounded-lg bg-centeks-border hover:bg-slate-700 text-white font-medium">Tamam</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 4: AGENT DOWNLOAD MODAL */}
+          {showDownloadModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-centeks-navy border border-centeks-border rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
+                <div className="bg-centeks-surface border-b border-centeks-border px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-centeks-gold/20 text-centeks-gold flex items-center justify-center font-bold">
+                      📥
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Centeks Destek İstemcisi / Ajanı İndir</h3>
+                      <p className="text-[11px] text-slate-400">Merkezi sunucumuza otomatik bağlanan ön yapılandırmalı kurulum dosyaları</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowDownloadModal(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  {/* Department Assignment */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Otomatik Eklenecek Departman Grubu:</label>
+                    <select className="w-full bg-centeks-surface border border-centeks-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-centeks-gold">
+                      <option>Fabrika (Üretim & Atölye)</option>
+                      <option>Ofis / Muhasebe</option>
+                      <option>Sunucular & Veri Merkezi</option>
+                      <option>Bilgi İşlem Departmanı</option>
+                    </select>
+                  </div>
+
+                  {/* Windows Card */}
+                  <div className="bg-centeks-surface/70 border border-centeks-border rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-400 font-bold">🪟 Windows</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-medium">64-bit Standalone</span>
+                      </div>
+                      <span className="text-[11px] text-slate-400">v1.5.3</span>
+                    </div>
+                    <p className="text-xs text-slate-300 mb-3">
+                      Tek parça taşınabilir istemci. Gömülü parametrelerle çift tıklandığında anında panele kayıt olur ve destek almaya hazır hale gelir.
+                    </p>
+                    <div className="flex gap-2">
+                      <a 
+                        href="https://github.com/ilhankebabci/rustdesk/actions" 
+                        target="_blank"
+                        className="flex-1 text-center py-2 px-3 rounded-xl bg-centeks-gold hover:bg-centeks-gold-hover text-centeks-dark font-bold text-xs shadow transition"
+                      >
+                        CenteksDestek-x86_64.exe İndir
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Linux Card */}
+                  <div className="bg-centeks-surface/70 border border-centeks-border rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-amber-400 font-bold">🐧 Linux (Ubuntu / Debian / RHEL)</span>
+                      <span className="text-[10px] text-slate-400">Tek Tık Terminal Scripti</span>
+                    </div>
+                    <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono text-[11px] text-emerald-400 flex items-center justify-between">
+                      <span className="truncate mr-2">curl -s https://panel.centeks.com/meshagents?id=centeks | sudo bash</span>
+                      <button 
+                        onClick={() => handleCopy("curl -s https://panel.centeks.com/meshagents?id=centeks | sudo bash", "linux")}
+                        className="text-xs text-centeks-gold hover:text-white shrink-0 font-bold"
+                      >
+                        {copiedText === 'linux' ? 'Kopyalandı!' : 'Kopyala'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-centeks-surface px-6 py-3 border-t border-centeks-border flex justify-end">
+                  <button onClick={() => setShowDownloadModal(false)} className="px-4 py-1.5 rounded-xl bg-centeks-border text-white text-xs font-semibold hover:bg-slate-700">
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 5: ACCOUNT SETTINGS & 2FA */}
+          {showAccountModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-centeks-navy border border-centeks-border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+                <div className="bg-centeks-surface border-b border-centeks-border px-6 py-4 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    Yönetici Hesap & Güvenlik Ayarları
+                  </h3>
+                  <button onClick={() => setShowAccountModal(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  {/* Password Change */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-centeks-gold uppercase tracking-wider">Şifre Değiştir</h4>
+                    <input type="password" placeholder="Mevcut Şifre" className="w-full bg-centeks-surface border border-centeks-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-centeks-gold" />
+                    <input type="password" placeholder="Yeni Şifre" className="w-full bg-centeks-surface border border-centeks-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-centeks-gold" />
+                    <input type="password" placeholder="Yeni Şifre (Tekrar)" className="w-full bg-centeks-surface border border-centeks-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-centeks-gold" />
+                  </div>
+
+                  {/* 2FA Section */}
+                  <div className="border-t border-centeks-border pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-white">İki Aşamalı Doğrulama (2FA / TOTP)</h4>
+                        <p className="text-[11px] text-slate-400">Google Authenticator ile girişte kod zorunluluğu</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        Aktif
+                      </span>
+                    </div>
+
+                    <div className="bg-centeks-surface p-3 rounded-xl border border-centeks-border flex items-center gap-4">
+                      {/* Mock QR */}
+                      <div className="w-16 h-16 bg-white p-1 rounded-lg shrink-0 flex items-center justify-center">
+                        <div className="w-full h-full bg-slate-900 flex items-center justify-center text-[9px] text-centeks-gold font-bold text-center">
+                          2FA QR
+                        </div>
+                      </div>
+                      <div className="text-xs space-y-1">
+                        <div className="text-slate-300 font-mono text-[11px]">Gizli Anahtar: <span className="text-centeks-gold font-bold">JBSW Y3DP EHPK 3PXP</span></div>
+                        <div className="text-[11px] text-slate-400">Yedek Kodlar: 4 adet kullanılabilir kod mevcut.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-centeks-surface px-6 py-3 border-t border-centeks-border flex justify-between items-center">
+                  <button onClick={() => alert('Şifre güncellendi.')} className="px-4 py-1.5 rounded-xl bg-centeks-gold hover:bg-centeks-gold-hover text-centeks-dark text-xs font-bold shadow">
+                    Değişiklikleri Kaydet
+                  </button>
+                  <button onClick={() => setShowAccountModal(false)} className="px-4 py-1.5 rounded-xl bg-centeks-border text-white text-xs font-semibold hover:bg-slate-700">
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 6: AUDIT LOGS */}
+          {showAuditLogs && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-centeks-navy border border-centeks-border rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col h-[520px]">
+                <div className="bg-centeks-surface border-b border-centeks-border px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-centeks-gold/20 text-centeks-gold flex items-center justify-center">
+                      📜
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Güvenlik & Bağlantı Olay Günlüğü (Audit Trail)</h3>
+                      <p className="text-[11px] text-slate-400">Hangi operatörün hangi makinaya ne zaman bağlandığının eksiksiz kaydı</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => alert('Olay günlüğü CSV formatında dışa aktarıldı.')}
+                      className="px-3 py-1.5 rounded-lg bg-centeks-card hover:bg-centeks-border text-centeks-gold font-bold text-xs border border-centeks-border transition"
+                    >
+                      Dışa Aktar (CSV)
+                    </button>
+                    <button onClick={() => setShowAuditLogs(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-centeks-surface text-slate-400 uppercase font-semibold border-b border-centeks-border">
+                      <tr>
+                        <th className="py-2.5 px-3">Zaman</th>
+                        <th className="py-2.5 px-3">Kullanıcı</th>
+                        <th className="py-2.5 px-3">Hedef Cihaz</th>
+                        <th className="py-2.5 px-3">Yapılan İşlem</th>
+                        <th className="py-2.5 px-3">Süre</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-centeks-border/40">
+                      {AUDIT_LOGS.map(log => (
+                        <tr key={log.id} className="hover:bg-centeks-surface/40 transition">
+                          <td className="py-2.5 px-3 font-mono text-slate-400">{log.time}</td>
+                          <td className="py-2.5 px-3 font-semibold text-white">{log.user}</td>
+                          <td className="py-2.5 px-3 font-mono text-centeks-gold">{log.device}</td>
+                          <td className="py-2.5 px-3 text-slate-300">{log.action}</td>
+                          <td className="py-2.5 px-3 font-mono text-emerald-400">{log.duration}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="bg-centeks-surface px-6 py-3 border-t border-centeks-border flex justify-end">
+                  <button onClick={() => setShowAuditLogs(false)} className="px-4 py-1.5 rounded-xl bg-centeks-border text-white text-xs font-semibold hover:bg-slate-700">
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FOOTER */}
+          <footer className="bg-centeks-navy/90 border-t border-centeks-border px-6 py-2.5 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-200">CENTEKS Destek v1.5.3</span>
+              <span>•</span>
+              <span>CENTEKS Group Bilgi İşlem Operasyon Merkezi</span>
+            </div>
+            <div className="flex items-center gap-4 text-[11px]">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                WebRTC & REST API Aktif
+              </span>
+              <span>SSL 256-bit TLS</span>
+            </div>
+          </footer>
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
