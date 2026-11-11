@@ -259,7 +259,7 @@ export default function RemoteSessionModal({ session, onClose }) {
                 </div>
                 <div className="flex justify-between pt-1 border-t border-[#243540]">
                   <span className="text-slate-500">IT Dahili Hat:</span>
-                  <span className="text-[#d7b469] font-bold">1104 / 1105</span>
+                  <span className="text-[#d7b469] font-bold">101</span>
                 </div>
               </div>
             </div>

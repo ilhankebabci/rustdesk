@@ -195,7 +195,7 @@ export default function Sidebar({
           <div className="pt-1.5 flex items-center justify-between text-[10px] text-slate-400 border-t border-[#243540]/60">
             <span className="flex items-center gap-1 text-[#d7b469]">
               <PhoneCall className="h-3 w-3" />
-              Dahili: 1104 / 1105
+              Dahili: 101
             </span>
             <span className="text-slate-500">v1.5.3-prod</span>
           </div>

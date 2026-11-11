@@ -251,7 +251,7 @@ export default function AgentDownloadModal({ onClose }) {
         {/* Alt Kısım */}
         <div className="flex items-center justify-between pt-3 border-t border-[#243540] text-xs">
           <span className="text-slate-500 font-mono text-[11px]">
-            CENTEKS Group Bilgi İşlem • Dahili: 1104 / 1105
+            CENTEKS Group Bilgi İşlem • Dahili: 101
           </span>
           <button
             onClick={onClose}
