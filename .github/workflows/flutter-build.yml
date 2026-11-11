@@ -124,9 +124,12 @@ jobs:
           flutter doctor -v
           flutter precache --windows
           Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
-          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          $flutterPath = "${{ steps.flutter.outputs['CACHE-PATH'] }}"
-          Copy-Item -Path "windows-x64-release\*" -Destination "$flutterPath\bin\cache\artifacts\engine\windows-x64-release\" -Recurse -Force
+          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release -Force
+          $flutterDir = if ($env:FLUTTER_ROOT) { $env:FLUTTER_ROOT } else { Split-Path (Split-Path (Get-Command flutter.bat).Source) }
+          $engineDir = "$flutterDir\bin\cache\artifacts\engine\windows-x64-release"
+          Write-Host "Target Engine Directory: $engineDir"
+          New-Item -ItemType Directory -Force -Path $engineDir | Out-Null
+          Copy-Item -Path "windows-x64-release\*" -Destination "$engineDir" -Recurse -Force
 
       - name: Patch flutter dropdown menu
         shell: bash
