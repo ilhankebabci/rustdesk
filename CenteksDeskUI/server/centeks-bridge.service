@@ -1,0 +1,16 @@
+[Unit]
+Description=CENTEKS Destek - RustDesk Cihaz & API Koprusu
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/centeks-bridge
+ExecStart=/usr/bin/python3 /opt/centeks-bridge/bridge.py
+Restart=always
+RestartSec=5
+Environment=CENTEKS_PORT=8000
+Environment=RUSTDESK_DB_PATH=/root/db.sqlite3
+
+[Install]
+WantedBy=multi-user.target

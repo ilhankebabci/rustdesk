@@ -114,7 +114,39 @@
         return INITIAL_DEVICES;
       });
 
-      // Synchronize devices to localStorage
+      // --- Live API Bridge Sync State ---
+      const [isApiLive, setIsApiLive] = useState(false);
+
+      // Fetch live devices from Centeks Bridge API periodically
+      useEffect(() => {
+        let isMounted = true;
+        const syncFromApi = async () => {
+          try {
+            const res = await fetch('/api/devices');
+            if (res.ok) {
+              const liveData = await res.json();
+              if (Array.isArray(liveData) && isMounted) {
+                setIsApiLive(true);
+                // Merge or update devices from server
+                setDevices(liveData);
+                return;
+              }
+            }
+            if (isMounted) setIsApiLive(false);
+          } catch (err) {
+            if (isMounted) setIsApiLive(false);
+          }
+        };
+
+        syncFromApi();
+        const pollTimer = setInterval(syncFromApi, 4000);
+        return () => {
+          isMounted = false;
+          clearInterval(pollTimer);
+        };
+      }, []);
+
+      // Synchronize devices to localStorage as fallback
       useEffect(() => {
         try {
           localStorage.setItem('centeks_devices', JSON.stringify(devices));
@@ -144,14 +176,14 @@
       const [newDeviceId, setNewDeviceId] = useState("");
       const [newDeviceIp, setNewDeviceIp] = useState("");
 
-      const handleAddDeviceSubmit = (e) => {
+      const handleAddDeviceSubmit = async (e) => {
         e.preventDefault();
         const trimmedName = newDeviceName.trim();
         const trimmedId = newDeviceId.trim();
         if (!trimmedName || !trimmedId) return;
 
         const newDevice = {
-          id: "dev-" + Date.now(),
+          id: "dev-" + trimmedId.replace(/\s+/g, ''),
           name: trimmedName,
           department: newDeviceDept,
           rustdeskId: trimmedId,
@@ -164,17 +196,34 @@
           lastSeen: "Şimdi aktif"
         };
 
-        setDevices(prev => [newDevice, ...prev]);
+        // Local state update
+        setDevices(prev => [newDevice, ...prev.filter(d => d.id !== newDevice.id)]);
         setShowAddDeviceModal(false);
         setNewDeviceName("");
         setNewDeviceId("");
         setNewDeviceIp("");
+
+        // Server API sync (if bridge is active)
+        try {
+          await fetch('/api/devices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newDevice)
+          });
+        } catch (err) {
+          console.warn("Sunucu API köprüsü çevrimdışı, sadece yerel hafızaya kaydedildi.");
+        }
       };
 
-      const handleDeleteDevice = (deviceId, e) => {
+      const handleDeleteDevice = async (deviceId, e) => {
         e.stopPropagation();
         if (confirm("Bu cihazı listeden silmek istediğinize emin misiniz?")) {
           setDevices(prev => prev.filter(d => d.id !== deviceId));
+          try {
+            await fetch('/api/devices/' + deviceId, { method: 'DELETE' });
+          } catch (err) {
+            console.warn("Sunucu silme isteği iletilemedi.");
+          }
         }
       };
 
@@ -670,6 +719,17 @@
                     <div>Rendezvous: <span className="text-slate-200">destek.centeks.com</span></div>
                     <div>Port: <span className="text-slate-200">21116 / 21117</span></div>
                     <div>Panel: <span className="text-centeks-gold">panel.centeks.com</span></div>
+                    <div className="pt-1.5 mt-1 border-t border-centeks-border/40 flex items-center justify-between">
+                      <span className="text-slate-400">Canlı Senkron:</span>
+                      {isApiLive ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          Bağlı (REST API)
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Yerel Mod</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
