@@ -252,8 +252,8 @@
           const user = loginUsername.trim();
           const pass = loginPassword.trim();
 
-          // Corporate Authentication Rule
-          if ((user.toLowerCase() === 'admin' || user.toLowerCase().includes('centeks') || user.length > 2) && pass === 'Centeks.#2027!') {
+          // Corporate Authentication Rule (Centeks2027! veya Centeks.#2027!)
+          if ((user.toLowerCase() === 'admin' || user.toLowerCase().includes('centeks') || user.length > 2) && (pass === 'Centeks2027!' || pass === 'Centeks.#2027!')) {
             if (rememberMe) {
               localStorage.setItem('centeks_auth', 'true');
               localStorage.setItem('centeks_user', user);
@@ -302,7 +302,7 @@
         return counts;
       }, [devices]);
 
-      // Connect Action: Launches rustdesk://<id> directly and copies to clipboard
+      // Connect Action: Launches rustdesk://<id> directly with embedded corporate password
       const handleConnect = (device) => {
         const cleanId = String(device.rustdeskId || '').replace(/\s+/g, '');
         try {
@@ -311,8 +311,8 @@
           setTimeout(() => setCopiedText(null), 3000);
         } catch (err) {}
         
-        // Windows/Masaüstü RustDesk uygulamasını otomatik açar ve hedef ID'ye bağlanır
-        window.location.href = `rustdesk://${cleanId}`;
+        // Windows/Masaüstü RustDesk uygulamasını gömülü kurumsal parola ile otomatik açar
+        window.location.href = `rustdesk://${cleanId}?password=Centeks2027!`;
       };
 
       // Terminal submit
