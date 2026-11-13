@@ -302,11 +302,17 @@
         return counts;
       }, [devices]);
 
-      // Connect Action: Launches rustdesk://<id> directly
+      // Connect Action: Launches rustdesk://<id> directly and copies to clipboard
       const handleConnect = (device) => {
         const cleanId = String(device.rustdeskId || '').replace(/\s+/g, '');
+        try {
+          navigator.clipboard.writeText(cleanId);
+          setCopiedText(device.id);
+          setTimeout(() => setCopiedText(null), 3000);
+        } catch (err) {}
+        
+        // Windows/Masaüstü RustDesk uygulamasını otomatik açar ve hedef ID'ye bağlanır
         window.location.href = `rustdesk://${cleanId}`;
-        setRemoteSession(device);
       };
 
       // Terminal submit
