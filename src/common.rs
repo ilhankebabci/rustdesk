@@ -1294,6 +1294,7 @@ fn get_api_server_(api: String, custom: String) -> String {
     if !api.is_empty() {
         return api.to_owned();
     }
+    return hbb_common::config::DEFAULT_API_SERVER.to_owned();
     let s0 = get_custom_rendezvous_server(custom);
     if !s0.is_empty() {
         let s = crate::increase_port(&s0, -2);
