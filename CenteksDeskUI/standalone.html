@@ -159,6 +159,17 @@
       const [searchQuery, setSearchQuery] = useState("");
       const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'table'
 
+      // Theme State (Dark / Light Mode)
+      const [theme, setTheme] = useState(() => {
+        return localStorage.getItem('centeks_theme') || 'dark';
+      });
+
+      const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        localStorage.setItem('centeks_theme', next);
+      };
+
       // Modals State
       const [remoteSession, setRemoteSession] = useState(null);
       const [terminalDevice, setTerminalDevice] = useState(null);
@@ -167,6 +178,10 @@
       const [showAccountModal, setShowAccountModal] = useState(false);
       const [showAuditLogs, setShowAuditLogs] = useState(false);
       const [showAddDeviceModal, setShowAddDeviceModal] = useState(false);
+      const [editingDevice, setEditingDevice] = useState(null);
+      const [editName, setEditName] = useState("");
+      const [editDept, setEditDept] = useState("Bilgi İşlem");
+      const [customDeptInput, setCustomDeptInput] = useState("");
       const [showUserMenu, setShowUserMenu] = useState(false);
       const [copiedText, setCopiedText] = useState(null);
 
@@ -175,6 +190,38 @@
       const [newDeviceDept, setNewDeviceDept] = useState("Bilgi İşlem");
       const [newDeviceId, setNewDeviceId] = useState("");
       const [newDeviceIp, setNewDeviceIp] = useState("");
+
+      const handleOpenEdit = (device, e) => {
+        if (e) e.stopPropagation();
+        setEditingDevice(device);
+        setEditName(device.name || "");
+        setEditDept(device.department || "Bilgi İşlem");
+        setCustomDeptInput("");
+      };
+
+      const handleSaveEdit = async (e) => {
+        e.preventDefault();
+        if (!editingDevice || !editName.trim()) return;
+
+        const targetDept = editDept === "__custom__" ? (customDeptInput.trim() || "Genel") : editDept;
+
+        const updatedDev = {
+          ...editingDevice,
+          name: editName.trim(),
+          department: targetDept,
+        };
+
+        setDevices(prev => prev.map(d => d.id === editingDevice.id ? updatedDev : d));
+        setEditingDevice(null);
+
+        try {
+          await fetch('/api/devices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedDev)
+          });
+        } catch (err) {}
+      };
 
       const handleAddDeviceSubmit = async (e) => {
         e.preventDefault();
@@ -293,14 +340,21 @@
         });
       }, [devices, activeDepartment, searchQuery]);
 
+      // Dynamic Departments
+      const allDepartments = useMemo(() => {
+        const defaults = ["Fabrika", "Ofis / Muhasebe", "Sunucular", "Bilgi İşlem"];
+        const custom = devices.map(d => d.department).filter(Boolean);
+        return Array.from(new Set([...defaults, ...custom]));
+      }, [devices]);
+
       // Counts per department
       const departmentCounts = useMemo(() => {
         const counts = { "Tümü": devices.length };
-        ["Fabrika", "Ofis / Muhasebe", "Sunucular", "Bilgi İşlem"].forEach(dept => {
+        allDepartments.forEach(dept => {
           counts[dept] = devices.filter(d => d.department === dept).length;
         });
         return counts;
-      }, [devices]);
+      }, [devices, allDepartments]);
 
       // Connect Action: Launches rustdesk://<id> directly with embedded corporate password
       const handleConnect = (device) => {
@@ -533,10 +587,14 @@
       // 2. AUTHENTICATED DASHBOARD VIEW
       // ==========================================
       return (
-        <div className="min-h-screen flex flex-col bg-centeks-dark text-slate-100">
+        <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
+          theme === 'dark' ? 'bg-[#080d16] text-slate-100 selection:bg-centeks-gold selection:text-centeks-dark' : 'bg-[#f8fafc] text-slate-900 selection:bg-amber-500 selection:text-white'
+        }`}>
           
           {/* HEADER */}
-          <header className="sticky top-0 z-40 bg-centeks-navy/95 backdrop-blur-md border-b border-centeks-border px-6 py-3.5 flex items-center justify-between shadow-lg">
+          <header className={`sticky top-0 z-40 backdrop-blur-md border-b px-6 py-3.5 flex items-center justify-between shadow-sm transition-colors duration-200 ${
+            theme === 'dark' ? 'bg-[#0d1624]/95 border-centeks-border' : 'bg-white/95 border-slate-200 shadow-slate-200/40'
+          }`}>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <svg className="w-10 h-10 drop-shadow-md" viewBox="0 0 100 100" fill="none">
@@ -546,7 +604,7 @@
                 </svg>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-lg tracking-wider text-white">CENTEKS</span>
+                    <span className={`font-extrabold text-lg tracking-wider ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>CENTEKS</span>
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-centeks-gold/20 text-centeks-gold border border-centeks-gold/40">
                       DESTEK
                     </span>
@@ -573,8 +631,12 @@
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cihaz adı, IP veya RustDesk ID ile canlı ara..."
-                  className="w-full bg-centeks-surface border border-centeks-border rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-400 focus:outline-none focus:border-centeks-gold focus:ring-1 focus:ring-centeks-gold transition"
+                  placeholder="Cihaz adı, IP veya RustDesk ID ile ara..."
+                  className={`w-full border rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-centeks-gold transition ${
+                    theme === 'dark' 
+                      ? 'bg-centeks-surface border-centeks-border text-slate-200 placeholder-slate-400' 
+                      : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 shadow-inner'
+                  }`}
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white">✕</button>
@@ -583,79 +645,102 @@
             </div>
 
             {/* Header Right Actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              
+              {/* Theme Toggle Button */}
+              <button 
+                onClick={toggleTheme}
+                className={`p-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                  theme === 'dark' 
+                    ? 'bg-centeks-surface hover:bg-centeks-card border-centeks-border text-centeks-gold' 
+                    : 'bg-white hover:bg-slate-100 border-slate-300 text-amber-600'
+                }`}
+                title={theme === 'dark' ? "Açık Renk Temaya Geç" : "Koyu Temaya Geç"}
+              >
+                <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+                <span className="hidden md:inline">{theme === 'dark' ? 'Açık Mod' : 'Koyu Mod'}</span>
+              </button>
+
               <button 
                 onClick={() => setShowAddDeviceModal(true)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-centeks-surface hover:bg-centeks-card border border-centeks-gold/50 hover:border-centeks-gold text-xs font-bold text-centeks-gold transition shadow-sm active:scale-95"
                 title="Listeye Manuel RustDesk ID ile Cihaz Ekle"
               >
                 <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
-                <span>+ Manuel Cihaz Ekle</span>
+                <span className="hidden sm:inline">+ Manuel Cihaz Ekle</span>
               </button>
 
               <button 
                 onClick={() => setShowAuditLogs(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-centeks-surface hover:bg-centeks-card border border-centeks-border text-xs font-medium text-slate-300 transition"
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition ${
+                  theme === 'dark' 
+                    ? 'bg-centeks-surface hover:bg-centeks-card border-centeks-border text-slate-300' 
+                    : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+                }`}
                 title="Güvenlik & Bağlantı Olay Günlüğü"
               >
                 <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Olay Günlüğü
+                <span className="hidden lg:inline">Olay Günlüğü</span>
               </button>
 
               <button 
                 onClick={() => setShowDownloadModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-centeks-gold to-centeks-gold-hover text-centeks-dark font-semibold text-xs shadow-md shadow-centeks-gold/10 hover:shadow-centeks-gold/25 transition active:scale-95"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-centeks-gold to-centeks-gold-hover text-centeks-dark font-extrabold text-xs shadow-md shadow-centeks-gold/10 hover:shadow-centeks-gold/25 transition active:scale-95"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                + Yeni Ajan / İstemci İndir
+                <span>İstemci İndir</span>
               </button>
 
               {/* Profile Dropdown */}
               <div className="relative">
                 <button 
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl hover:bg-centeks-surface border border-transparent hover:border-centeks-border transition"
+                  className={`flex items-center gap-2 p-1.5 pr-2.5 rounded-xl border transition ${
+                    theme === 'dark' ? 'hover:bg-centeks-surface border-transparent hover:border-centeks-border' : 'hover:bg-slate-100 border-transparent hover:border-slate-300'
+                  }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-centeks-gold text-centeks-dark font-bold text-xs flex items-center justify-center shadow">
+                  <div className="w-8 h-8 rounded-lg bg-centeks-gold text-centeks-dark font-extrabold text-xs flex items-center justify-center shadow">
                     İK
                   </div>
                   <div className="text-left hidden sm:block">
-                    <div className="text-xs font-semibold text-white">İlhan K.</div>
-                    <div className="text-[10px] text-centeks-gold font-medium">Site Administrator</div>
+                    <div className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>İlhan K.</div>
+                    <div className="text-[10px] text-centeks-gold font-medium">Administrator</div>
                   </div>
                   <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-64 bg-centeks-surface border border-centeks-border rounded-xl shadow-2xl py-2 z-50 animate-fadeIn">
-                    <div className="px-4 py-2 border-b border-centeks-border">
-                      <p className="text-xs font-semibold text-white">İlhan Kebabcı</p>
+                  <div className={`absolute right-0 mt-2 w-64 border rounded-xl shadow-2xl py-2 z-50 animate-fadeIn ${
+                    theme === 'dark' ? 'bg-centeks-surface border-centeks-border text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                  }`}>
+                    <div className="px-4 py-2 border-b border-centeks-border/50">
+                      <p className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>İlhan Kebabcı</p>
                       <p className="text-[11px] text-slate-400">bilgiislem@centeks.com</p>
                       <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                        Tam Yetkili Yönetici (Super Admin)
+                        Tam Yetkili Yönetici
                       </span>
                     </div>
                     <div className="py-1">
                       <button 
                         onClick={() => { setShowAccountModal(true); setShowUserMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-xs text-slate-200 hover:bg-centeks-card flex items-center gap-2 transition"
+                        className={`w-full text-left px-4 py-2 text-xs flex items-center gap-2 transition ${theme === 'dark' ? 'hover:bg-centeks-card' : 'hover:bg-slate-100'}`}
                       >
                         <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
                         Hesap Ayarları & 2FA Güvenlik
                       </button>
                       <button 
                         onClick={() => { setShowAuditLogs(true); setShowUserMenu(false); }}
-                        className="w-full text-left px-4 py-2 text-xs text-slate-200 hover:bg-centeks-card flex items-center gap-2 transition"
+                        className={`w-full text-left px-4 py-2 text-xs flex items-center gap-2 transition ${theme === 'dark' ? 'hover:bg-centeks-card' : 'hover:bg-slate-100'}`}
                       >
                         <svg className="w-4 h-4 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         Oturum & Denetim Günlüğü
                       </button>
-                      <div className="border-t border-centeks-border my-1"></div>
+                      <div className="border-t border-centeks-border/40 my-1"></div>
                       <button 
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition"
+                        className="w-full text-left px-4 py-2 text-xs text-rose-500 hover:bg-rose-500/10 flex items-center gap-2 transition"
                       >
-                        <svg className="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         Güvenli Çıkış Yap
                       </button>
                     </div>
@@ -669,30 +754,34 @@
           <div className="flex-1 flex overflow-hidden">
             
             {/* SIDEBAR */}
-            <aside className="w-64 bg-centeks-navy/80 border-r border-centeks-border flex flex-col p-4 shrink-0">
+            <aside className={`w-64 border-r flex flex-col p-4 shrink-0 transition-colors duration-200 ${
+              theme === 'dark' ? 'bg-[#0d1624]/80 border-centeks-border' : 'bg-white border-slate-200'
+            }`}>
               <div className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-3 px-2">
                 Departmanlar & Gruplar
               </div>
               <nav className="space-y-1">
-                {["Tümü", "Fabrika", "Ofis / Muhasebe", "Sunucular", "Bilgi İşlem"].map(dept => {
+                {["Tümü", ...allDepartments].map(dept => {
                   const isActive = activeDepartment === dept;
                   const count = departmentCounts[dept] || 0;
                   return (
                     <button
                       key={dept}
                       onClick={() => setActiveDepartment(dept)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
                         isActive 
-                          ? 'bg-centeks-gold text-centeks-dark font-bold shadow-md shadow-centeks-gold/15' 
-                          : 'text-slate-300 hover:bg-centeks-surface hover:text-white'
+                          ? (theme === 'dark' ? 'bg-centeks-gold text-centeks-dark font-extrabold shadow-md shadow-centeks-gold/20' : 'bg-amber-500 text-white font-extrabold shadow-md shadow-amber-500/20')
+                          : (theme === 'dark' ? 'text-slate-300 hover:bg-centeks-surface hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900')
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-centeks-dark' : 'bg-slate-400'}`}></span>
-                        <span>{dept}</span>
+                      <div className="flex items-center gap-2.5 truncate">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? (theme === 'dark' ? 'bg-centeks-dark' : 'bg-white') : 'bg-slate-400'}`}></span>
+                        <span className="truncate">{dept}</span>
                       </div>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${
-                        isActive ? 'bg-centeks-dark/20 text-centeks-dark font-extrabold' : 'bg-centeks-surface text-slate-400 border border-centeks-border'
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full shrink-0 ${
+                        isActive 
+                          ? (theme === 'dark' ? 'bg-centeks-dark/20 text-centeks-dark font-extrabold' : 'bg-white/20 text-white font-extrabold')
+                          : (theme === 'dark' ? 'bg-centeks-surface text-slate-400 border border-centeks-border' : 'bg-slate-100 text-slate-500 border border-slate-200')
                       }`}>
                         {count}
                       </span>
@@ -704,7 +793,11 @@
               <div className="pt-3">
                 <button 
                   onClick={() => setShowAddDeviceModal(true)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-centeks-card hover:bg-centeks-surface border border-dashed border-centeks-gold/40 hover:border-centeks-gold text-centeks-gold text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 shadow-sm"
+                  className={`w-full py-2.5 px-3 rounded-xl border border-dashed text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 shadow-sm ${
+                    theme === 'dark'
+                      ? 'bg-centeks-card hover:bg-centeks-surface border-centeks-gold/40 hover:border-centeks-gold text-centeks-gold'
+                      : 'bg-amber-50 hover:bg-amber-100/70 border-amber-300 text-amber-700'
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                   <span>+ Manuel Cihaz Ekle</span>
@@ -712,24 +805,26 @@
               </div>
 
               {/* Server Gateway Status Box */}
-              <div className="mt-auto pt-4 border-t border-centeks-border/60">
-                <div className="bg-centeks-surface/70 rounded-xl p-3 border border-centeks-border/80">
+              <div className={`mt-auto pt-4 border-t ${theme === 'dark' ? 'border-centeks-border/60' : 'border-slate-200'}`}>
+                <div className={`rounded-xl p-3 border ${
+                  theme === 'dark' ? 'bg-centeks-surface/70 border-centeks-border/80' : 'bg-slate-50 border-slate-200'
+                }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-semibold text-slate-300">Merkez Ağ Durumu</span>
-                    <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className={`text-[11px] font-bold ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>Merkez Ağ Durumu</span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-emerald-500 font-extrabold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                       Aktif
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-400 space-y-1 font-mono">
-                    <div>Rendezvous: <span className="text-slate-200">destek.centeks.com</span></div>
-                    <div>Port: <span className="text-slate-200">21116 / 21117</span></div>
-                    <div>Panel: <span className="text-centeks-gold">panel.centeks.com</span></div>
-                    <div className="pt-1.5 mt-1 border-t border-centeks-border/40 flex items-center justify-between">
-                      <span className="text-slate-400">Canlı Senkron:</span>
+                    <div>Rendezvous: <span className={theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}>destek.centeks.com</span></div>
+                    <div>Port: <span className={theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}>21116 / 21117</span></div>
+                    <div>Panel: <span className="text-centeks-gold font-bold">panel.centeks.com</span></div>
+                    <div className="pt-1.5 mt-1 border-t border-slate-500/20 flex items-center justify-between">
+                      <span>Canlı Senkron:</span>
                       {isApiLive ? (
-                        <span className="text-emerald-400 font-bold flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span className="text-emerald-500 font-extrabold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                           Bağlı (REST API)
                         </span>
                       ) : (
@@ -747,61 +842,77 @@
               {/* Toolbar */}
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                  <h1 className={`text-xl font-extrabold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                     <span>{activeDepartment}</span>
-                    <span className="text-xs font-medium text-slate-400 px-2 py-0.5 rounded bg-centeks-surface border border-centeks-border">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
+                      theme === 'dark' ? 'bg-centeks-surface text-slate-400 border-centeks-border' : 'bg-slate-200 text-slate-700 border-slate-300'
+                    }`}>
                       {filteredDevices.length} Cihaz
                     </span>
                   </h1>
-                  <p className="text-xs text-slate-400 mt-0.5">Uzak masaüstü, PowerShell ve dosya yönetimi için hedef cihazı seçiniz.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Uzak masaüstü ve doğrudan müdahale için hedef cihazı seçiniz.</p>
                 </div>
 
                 {/* View Mode Toggle */}
                 {devices.length > 0 && (
-                  <div className="flex items-center bg-centeks-surface border border-centeks-border rounded-xl p-1 gap-1">
+                  <div className={`flex items-center border rounded-xl p-1 gap-1 ${
+                    theme === 'dark' ? 'bg-centeks-surface border-centeks-border' : 'bg-white border-slate-200 shadow-sm'
+                  }`}>
                     <button 
                       onClick={() => setViewMode('grid')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${viewMode === 'grid' ? 'bg-centeks-card text-centeks-gold shadow' : 'text-slate-400 hover:text-white'}`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                        viewMode === 'grid' 
+                          ? (theme === 'dark' ? 'bg-centeks-card text-centeks-gold shadow' : 'bg-amber-500 text-white shadow') 
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
                     >
-                      Grid Kartlar
+                      Kart Görünümü
                     </button>
                     <button 
                       onClick={() => setViewMode('table')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${viewMode === 'table' ? 'bg-centeks-card text-centeks-gold shadow' : 'text-slate-400 hover:text-white'}`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                        viewMode === 'table' 
+                          ? (theme === 'dark' ? 'bg-centeks-card text-centeks-gold shadow' : 'bg-amber-500 text-white shadow') 
+                          : 'text-slate-400 hover:text-slate-600'
+                      }`}
                     >
-                      Detaylı Tablo
+                      Tablo Görünümü
                     </button>
                   </div>
                 )}
               </div>
 
               {/* ======================================================== */}
-              {/* EMPTY STATE: WHEN NO DEVICES ARE REGISTERED YET          */}
+              {/* EMPTY STATE                                              */}
               {/* ======================================================== */}
               {devices.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center py-16">
-                  <div className="max-w-md w-full bg-centeks-card/70 border border-centeks-border rounded-2xl p-8 text-center shadow-2xl">
-                    <div className="w-16 h-16 mx-auto rounded-2xl bg-centeks-surface border border-centeks-border text-centeks-gold flex items-center justify-center mb-5 shadow-inner">
+                  <div className={`max-w-md w-full border rounded-2xl p-8 text-center shadow-2xl ${
+                    theme === 'dark' ? 'bg-centeks-card/70 border-centeks-border' : 'bg-white border-slate-200'
+                  }`}>
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-centeks-gold/20 text-centeks-gold flex items-center justify-center mb-5 shadow-inner">
                       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                     </div>
-                    <h3 className="text-base font-bold text-white mb-2">Henüz kayıtlı cihaz bulunamadı</h3>
+                    <h3 className={`text-base font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Henüz kayıtlı cihaz bulunamadı</h3>
                     <p className="text-xs text-slate-400 leading-relaxed mb-6">
-                      İstemciyi indirerek veya hazır bir RustDesk ID numarasını sisteme kaydederek ilk cihazınızı anında bağlayabilirsiniz.
+                      İstemciyi kurarak veya üstteki "+ Manuel Cihaz Ekle" butonundan ID girerek ilk cihazınızı panele ekleyebilirsiniz.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <button 
                         onClick={() => setShowAddDeviceModal(true)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-centeks-surface hover:bg-centeks-navy border border-centeks-gold/50 text-centeks-gold font-bold text-xs shadow transition active:scale-95"
+                        className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-xs shadow transition active:scale-95 ${
+                          theme === 'dark' ? 'bg-centeks-surface border-centeks-gold/50 text-centeks-gold' : 'bg-amber-50 border-amber-300 text-amber-700'
+                        }`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
                         + Manuel Cihaz Ekle
                       </button>
                       <button 
                         onClick={() => setShowDownloadModal(true)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-centeks-gold to-centeks-gold-hover text-centeks-dark font-extrabold text-xs shadow-lg shadow-centeks-gold/15 hover:shadow-centeks-gold/30 active:scale-95 transition"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-centeks-gold to-centeks-gold-hover text-centeks-dark font-extrabold text-xs shadow-lg shadow-centeks-gold/15 active:scale-95 transition"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        Ajan / İstemci İndir
+                        İstemci İndir
                       </button>
                     </div>
                   </div>
@@ -811,56 +922,111 @@
                 viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filteredDevices.map(device => (
-                      <div key={device.id} className="bg-centeks-card/90 border border-centeks-border hover:border-centeks-gold/60 rounded-2xl p-5 transition shadow-xl flex flex-col justify-between group">
+                      <div key={device.id} className={`rounded-2xl p-5 border transition-all duration-200 shadow-md hover:shadow-xl flex flex-col justify-between group relative overflow-hidden ${
+                        theme === 'dark' 
+                          ? 'bg-[#101b2d]/90 border-centeks-border hover:border-centeks-gold/60' 
+                          : 'bg-white border-slate-200 hover:border-amber-500/60 shadow-slate-200/50'
+                      }`}>
+                        {/* Top Accent bar for visual flair */}
+                        <div className={`absolute top-0 left-0 right-0 h-1 ${
+                          device.status === 'online' 
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400' 
+                            : 'bg-slate-400/40'
+                        }`} />
+
                         <div>
-                          {/* Top Tag & Status */}
-                          <div className="flex justify-between items-start mb-3">
-                            <span className="text-[11px] font-semibold text-centeks-gold bg-centeks-gold/10 border border-centeks-gold/30 px-2.5 py-0.5 rounded-full">
-                              {device.department || 'Bilgi İşlem'}
+                          {/* Top Row: Department Tag, Online/Offline Badge, Quick Actions */}
+                          <div className="flex items-center justify-between mb-3.5 pt-0.5">
+                            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                              theme === 'dark'
+                                ? 'bg-centeks-gold/10 text-centeks-gold border-centeks-gold/30'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {device.department || 'Genel'}
                             </span>
-                            <div className="flex items-center gap-2">
-                              <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                Online
-                              </span>
+
+                            <div className="flex items-center gap-1.5">
+                              {device.status === 'online' ? (
+                                <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                                  <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                  </span>
+                                  Çevrimiçi
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 bg-slate-500/10 border border-slate-500/20 px-2.5 py-0.5 rounded-full">
+                                  <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                                  Çevrimdışı
+                                </span>
+                              )}
+
+                              {/* Edit Button (Rename & Department) */}
+                              <button 
+                                onClick={(e) => handleOpenEdit(device, e)}
+                                title="Cihaz Adı ve Departmanı Düzenle"
+                                className="text-slate-400 hover:text-centeks-gold p-1 rounded-lg hover:bg-slate-500/10 transition"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </button>
+
+                              {/* Delete Button */}
                               <button 
                                 onClick={(e) => handleDeleteDevice(device.id, e)}
                                 title="Cihazı Listeden Kaldır"
-                                className="text-slate-500 hover:text-rose-400 p-1 rounded transition opacity-0 group-hover:opacity-100"
+                                className="text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-500/10 transition"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                             </div>
                           </div>
 
-                          {/* Device Name & User */}
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-centeks-navy border border-centeks-border flex items-center justify-center text-lg shadow">
-                              💻
+                          {/* Device Identity */}
+                          <div className="flex items-center gap-3 mb-3.5">
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shadow-sm border ${
+                              theme === 'dark' 
+                                ? 'bg-centeks-surface border-centeks-border text-white' 
+                                : 'bg-slate-100 border-slate-200 text-slate-700'
+                            }`}>
+                              {device.os && device.os.toLowerCase().includes('server') ? '🖥️' : '💻'}
                             </div>
-                            <div>
-                              <h3 className="font-extrabold text-sm text-white group-hover:text-centeks-gold transition">
+                            <div className="overflow-hidden">
+                              <h3 className={`font-extrabold text-sm truncate transition ${
+                                theme === 'dark' ? 'text-white group-hover:text-centeks-gold' : 'text-slate-900 group-hover:text-amber-600'
+                              }`}>
                                 {device.name}
                               </h3>
-                              <p className="text-[11px] text-slate-400">{device.os || 'Windows 11'} • {device.ip}</p>
+                              <p className="text-[11px] text-slate-400 truncate">
+                                {device.os || 'Windows 11'} • {device.ip}
+                              </p>
                             </div>
                           </div>
 
-                          {/* RustDesk ID Display & Quick Copy */}
-                          <div className="bg-centeks-surface/90 rounded-xl p-3 border border-centeks-border/90 flex items-center justify-between mb-4">
+                          {/* RustDesk ID Container */}
+                          <div className={`rounded-xl p-3 border flex items-center justify-between mb-4 transition ${
+                            theme === 'dark'
+                              ? 'bg-centeks-surface/90 border-centeks-border/90'
+                              : 'bg-slate-50 border-slate-200'
+                          }`}>
                             <div>
-                              <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">RustDesk ID</div>
-                              <div className="text-sm font-mono font-extrabold text-centeks-gold tracking-wider">
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">RustDesk ID</div>
+                              <div className={`text-sm font-mono font-extrabold tracking-wider ${
+                                theme === 'dark' ? 'text-centeks-gold' : 'text-amber-600'
+                              }`}>
                                 {device.rustdeskId}
                               </div>
                             </div>
                             <button 
                               onClick={(e) => { e.stopPropagation(); handleCopy(device.rustdeskId.replace(/\s+/g, ''), device.id); }}
-                              className="text-xs px-2.5 py-1.5 rounded-lg bg-centeks-card hover:bg-centeks-navy border border-centeks-border text-slate-300 hover:text-white transition flex items-center gap-1.5"
+                              className={`text-xs px-2.5 py-1.5 rounded-lg border font-semibold transition flex items-center gap-1.5 ${
+                                theme === 'dark'
+                                  ? 'bg-centeks-card hover:bg-centeks-navy border-centeks-border text-slate-300 hover:text-white'
+                                  : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+                              }`}
                               title="ID Kopyala"
                             >
                               {copiedText === device.id ? (
-                                <span className="text-emerald-400 font-bold text-[11px]">Kopyalandı!</span>
+                                <span className="text-emerald-500 font-bold text-[11px]">Kopyalandı!</span>
                               ) : (
                                 <>
                                   <svg className="w-3.5 h-3.5 text-centeks-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -871,31 +1037,56 @@
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2 pt-2 border-t border-centeks-border/60">
-                          <button 
-                            onClick={() => handleConnect(device)} 
-                            className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-centeks-gold to-centeks-gold-hover text-centeks-dark font-extrabold text-xs shadow-md shadow-centeks-gold/15 hover:shadow-centeks-gold/30 active:scale-95 transition flex items-center justify-center gap-2"
-                            title={`rustdesk://${device.rustdeskId.replace(/\s+/g, '')} ile doğrudan bağlan`}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                            <span>Bağlan</span>
-                          </button>
-                          <button 
-                            onClick={() => setTerminalDevice(device)} 
-                            className="py-2.5 px-3 rounded-xl bg-centeks-surface hover:bg-centeks-navy text-slate-300 hover:text-white border border-centeks-border text-xs font-semibold transition"
-                            title="PowerShell Konsolu"
-                          >
-                            &gt;_
-                          </button>
+                        {/* Bottom Row: Status Text & Connect Button */}
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2 px-1">
+                            <span className="flex items-center gap-1">
+                              {device.status === 'online' ? (
+                                <span className="text-emerald-500 font-semibold">● Şimdi aktif</span>
+                              ) : (
+                                <span>○ {device.lastSeen || 'Çevrimdışı'}</span>
+                              )}
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-500">Gömülü Şifre: Aktif</span>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-500/20">
+                            <button 
+                              onClick={() => handleConnect(device)} 
+                              className={`flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs shadow-md active:scale-95 transition flex items-center justify-center gap-2 ${
+                                device.status === 'online'
+                                  ? 'bg-gradient-to-r from-centeks-gold to-centeks-gold-hover text-centeks-dark shadow-centeks-gold/20 hover:shadow-centeks-gold/35'
+                                  : (theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-200 hover:bg-slate-300 text-slate-700')
+                              }`}
+                              title={`rustdesk://${device.rustdeskId.replace(/\s+/g, '')}?password=Centeks2027! ile bağlan`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                              <span>{device.status === 'online' ? 'Doğrudan Bağlan' : 'Yine de Bağlan'}</span>
+                            </button>
+                            <button 
+                              onClick={(e) => handleOpenEdit(device, e)} 
+                              className={`p-2.5 rounded-xl border text-xs font-semibold transition ${
+                                theme === 'dark' 
+                                  ? 'bg-centeks-surface hover:bg-centeks-card border-centeks-border text-slate-300 hover:text-white' 
+                                  : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700'
+                              }`}
+                              title="Cihazı Düzenle"
+                            >
+                              ✏️
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-centeks-card border border-centeks-border rounded-2xl overflow-hidden shadow-xl">
+                  <div className={`border rounded-2xl overflow-hidden shadow-xl ${
+                    theme === 'dark' ? 'bg-centeks-card border-centeks-border' : 'bg-white border-slate-200'
+                  }`}>
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-centeks-surface text-slate-400 uppercase font-semibold border-b border-centeks-border">
+                      <thead className={`uppercase font-semibold border-b ${
+                        theme === 'dark' ? 'bg-centeks-surface text-slate-400 border-centeks-border' : 'bg-slate-50 text-slate-600 border-slate-200'
+                      }`}>
                         <tr>
                           <th className="py-3 px-4">Durum</th>
                           <th className="py-3 px-4">Cihaz Adı</th>
@@ -904,26 +1095,37 @@
                           <th className="py-3 px-4 text-right">İşlem</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-centeks-border/60">
+                      <tbody className={`divide-y ${theme === 'dark' ? 'divide-centeks-border/60' : 'divide-slate-200'}`}>
                         {filteredDevices.map(device => (
-                          <tr key={device.id} className="hover:bg-centeks-surface/50 transition">
+                          <tr key={device.id} className={`transition ${theme === 'dark' ? 'hover:bg-centeks-surface/50' : 'hover:bg-slate-50'}`}>
                             <td className="py-3 px-4">
-                              <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                Online
-                              </span>
+                              {device.status === 'online' ? (
+                                <span className="flex items-center gap-1.5 text-emerald-500 font-bold text-xs">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                  Çevrimiçi
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1.5 text-slate-400 font-medium text-xs">
+                                  <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                                  Çevrimdışı
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 px-4">
-                              <div className="font-bold text-white">{device.name}</div>
+                              <div className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{device.name}</div>
                               <div className="text-[11px] text-slate-400">{device.os || 'Windows 11'}</div>
                             </td>
                             <td className="py-3 px-4">
-                              <span className="text-[10px] font-semibold text-centeks-gold bg-centeks-gold/10 border border-centeks-gold/30 px-2 py-0.5 rounded-full">
+                              <span className={`text-[10px] font-semibold border px-2 py-0.5 rounded-full ${
+                                theme === 'dark' ? 'bg-centeks-gold/10 text-centeks-gold border-centeks-gold/30' : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
                                 {device.department}
                               </span>
                             </td>
                             <td className="py-3 px-4">
-                              <span className="font-mono text-centeks-gold font-bold text-xs bg-centeks-surface px-2 py-1 rounded border border-centeks-border">
+                              <span className={`font-mono font-bold text-xs px-2 py-1 rounded border ${
+                                theme === 'dark' ? 'bg-centeks-surface text-centeks-gold border-centeks-border' : 'bg-slate-100 text-amber-700 border-slate-300'
+                              }`}>
                                 {device.rustdeskId}
                               </span>
                               <span className="text-slate-400 ml-2 font-mono text-[11px]">{device.ip}</span>
@@ -933,16 +1135,23 @@
                                 <button 
                                   onClick={() => handleConnect(device)} 
                                   className="px-3.5 py-1.5 rounded-lg bg-centeks-gold hover:bg-centeks-gold-hover text-centeks-dark font-extrabold text-xs shadow transition active:scale-95"
-                                  title={`rustdesk://${device.rustdeskId.replace(/\s+/g, '')}`}
+                                  title={`rustdesk://${device.rustdeskId.replace(/\s+/g, '')}?password=Centeks2027!`}
                                 >
                                   Bağlan
                                 </button>
                                 <button 
-                                  onClick={(e) => handleDeleteDevice(device.id, e)}
-                                  className="text-slate-500 hover:text-rose-400 p-1.5 rounded hover:bg-rose-500/10 transition"
-                                  title="Listeden Sil"
+                                  onClick={(e) => handleOpenEdit(device, e)}
+                                  className="text-slate-400 hover:text-centeks-gold p-1.5 rounded"
+                                  title="Düzenle"
                                 >
-                                  ✕
+                                  ✏️
+                                </button>
+                                <button 
+                                  onClick={(e) => handleDeleteDevice(device.id, e)}
+                                  className="text-slate-400 hover:text-rose-500 p-1.5 rounded"
+                                  title="Sil"
+                                >
+                                  🗑️
                                 </button>
                               </div>
                             </td>
@@ -955,48 +1164,6 @@
               )}
             </main>
           </div>
-
-          {/* MODAL 1: REMOTE DESKTOP LIVE VIEWPORT */}
-          {remoteSession && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col animate-fadeIn">
-              <div className="h-14 bg-centeks-navy/95 border-b border-centeks-border px-6 flex items-center justify-between shadow-2xl">
-                <div className="flex items-center gap-3">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <div>
-                    <div className="text-xs font-bold text-white">{remoteSession.name} ({remoteSession.ip})</div>
-                    <div className="text-[10px] text-centeks-gold font-mono">RustDesk ID: {remoteSession.rustdeskId} • 1080p @ 60 FPS • WebRTC Şifreli</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button onClick={() => alert('Ctrl+Alt+Del sinyali gönderildi.')} className="px-3 py-1.5 rounded-lg bg-centeks-surface border border-centeks-border text-xs text-slate-200">
-                    Ctrl+Alt+Del Gönder
-                  </button>
-                  <button onClick={() => alert('Pano senkronize edildi.')} className="px-3 py-1.5 rounded-lg bg-centeks-surface border border-centeks-border text-xs text-slate-200">
-                    Pano Senkron
-                  </button>
-                  <button onClick={() => setRemoteSession(null)} className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs">
-                    Bağlantıyı Kes ✕
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 bg-slate-950 flex items-center justify-center p-8">
-                <div className="w-[90%] h-[85%] bg-slate-900 border border-centeks-border rounded-2xl flex flex-col items-center justify-center text-center p-6">
-                  <div className="w-16 h-16 rounded-2xl bg-centeks-gold/20 text-centeks-gold flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">{remoteSession.name}</h3>
-                  <p className="text-xs text-slate-400 max-w-sm mb-4">
-                    Yerel istemciye bağlantı yönlendirildi. WebRTC şifreli kanal aktiftir.
-                  </p>
-                  <div className="px-4 py-2 rounded-xl bg-centeks-surface border border-centeks-border text-xs font-mono text-centeks-gold">
-                    rustdesk://{remoteSession.rustdeskId}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* MODAL 2: TERMINAL */}
           {terminalDevice && (

@@ -60,9 +60,22 @@ def get_devices():
         clean_id = str(clean_id).replace(" ", "").strip()
         formatted_id = format_rustdesk_id(clean_id)
         
-        last_seen_ts = LIVE_HEARTBEATS.get(clean_id, info.get("last_seen_ts", 0))
-        # 90 saniye içinde sinyal geldiyse online
-        is_online = (now - last_seen_ts) < 90 if last_seen_ts else True
+        last_seen_ts = LIVE_HEARTBEATS.get(clean_id, 0)
+        # RustDesk her 15 saniyede bir heartbeat atar. 25 saniye sinyal gelmezse KESİNLİKLE offline'dır.
+        is_online = (now - last_seen_ts) <= 25 if last_seen_ts > 0 else False
+
+        if is_online:
+            last_seen_str = "Şimdi aktif"
+        elif last_seen_ts > 0:
+            diff = int(now - last_seen_ts)
+            if diff < 60:
+                last_seen_str = f"{diff} sn önce aktifti"
+            elif diff < 3600:
+                last_seen_str = f"{diff // 60} dk önce aktifti"
+            else:
+                last_seen_str = f"{diff // 3600} sa önce aktifti"
+        else:
+            last_seen_str = "Çevrimdışı"
 
         devices.append({
             "id": f"dev-{clean_id}",
@@ -73,9 +86,9 @@ def get_devices():
             "os": info.get("os", "Windows 11 / 10 64-bit"),
             "user": info.get("user") or info.get("name", "Kullanıcı"),
             "status": "online" if is_online else "offline",
-            "cpu": info.get("cpu", "11%"),
-            "ram": info.get("ram", "5.4 / 16 GB"),
-            "lastSeen": "Şimdi aktif" if is_online else "Çevrimdışı"
+            "cpu": info.get("cpu", "8%"),
+            "ram": info.get("ram", "4.8 / 16 GB"),
+            "lastSeen": last_seen_str
         })
 
     return devices
@@ -192,7 +205,7 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"v1")
             return
 
-        # 4. WEB PANEL MANUEL CİHAZ EKLEME (/api/devices)
+        # 4. WEB PANEL CİHAZ GÜNCELLEME VEYA EKLEME (/api/devices)
         elif parsed.path in ["/api/devices", "/api/devices/"]:
             try:
                 data = json.loads(body.decode("utf-8"))
@@ -204,16 +217,16 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
                     return
 
                 meta = load_metadata()
+                curr = meta.get(clean_id, {})
                 meta[clean_id] = {
-                    "name": data.get("name", f"Cihaz {clean_id}"),
-                    "department": data.get("department", "Bilgi İşlem"),
-                    "ip": data.get("ip", "192.168.1.100"),
-                    "os": data.get("os", "Windows 11 / 10 64-bit"),
-                    "user": data.get("user", data.get("name")),
-                    "last_seen_ts": time.time()
+                    "name": data.get("name") or curr.get("name", f"Cihaz {clean_id}"),
+                    "department": data.get("department") or curr.get("department", "Bilgi İşlem"),
+                    "ip": data.get("ip") or curr.get("ip", "192.168.1.100"),
+                    "os": data.get("os") or curr.get("os", "Windows 11 / 10 64-bit"),
+                    "user": data.get("user") or curr.get("user", data.get("name")),
+                    "last_seen_ts": curr.get("last_seen_ts", 0)
                 }
                 save_metadata(meta)
-                LIVE_HEARTBEATS[clean_id] = time.time()
 
                 self.send_response(200)
                 self._send_cors()
