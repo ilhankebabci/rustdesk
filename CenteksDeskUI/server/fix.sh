@@ -1,100 +1,71 @@
 #!/bin/bash
 # ==============================================================================
-# CENTEKS Destek - Otomatik Nginx & API Teşhis ve Düzeltme Aracı (fix.sh)
+# CENTEKS Destek - Nginx HTTPS Port 443 /api/ Enjektörü ve Teşhis Aracı (v3.0)
 # ==============================================================================
 set -e
 
-echo "=========================================================="
-echo " [1/3] Köprü Servisi (centeks-bridge) Kontrol Ediliyor... "
-echo "=========================================================="
-sudo systemctl daemon-reload
-sudo systemctl enable centeks-bridge
-sudo systemctl restart centeks-bridge
-sleep 2
-
-if curl -s http://127.0.0.1:8000/api/health | grep -q "ok"; then
-    echo "✅ Köprü servisi (Python Port 8000) ÇALIŞIYOR!"
-else
-    echo "⚠️ Köprü servisi başlatılamadı, loglar:"
-    sudo journalctl -u centeks-bridge -n 10 --no-pager
-fi
-
-echo "=========================================================="
-echo " [2/3] Nginx Konfigürasyonuna /api/ Enjekte Ediliyor...   "
-echo "=========================================================="
+echo ">>> [1/3] Mevcut Nginx Dosyası İnceleniyor..."
 sudo python3 -c '
-import os, glob, subprocess
+import os, re, subprocess
 
-# Nginx dosyalarini tara
-found = []
-for p in ["/etc/nginx/sites-enabled/*", "/etc/nginx/conf.d/*.conf", "/etc/nginx/sites-available/*"]:
-    for f in glob.glob(p):
-        if os.path.isfile(f):
-            try:
-                with open(f, "r", encoding="utf-8") as fp:
-                    c = fp.read()
-                    if "panel.centeks.com" in c or "centeks-panel" in c:
-                        found.append(f)
-            except Exception:
-                pass
-
-if not found:
-    for f in ["/etc/nginx/sites-available/default", "/etc/nginx/conf.d/default.conf"]:
-        if os.path.isfile(f):
-            found.append(f)
+config_path = "/etc/nginx/sites-available/panel.centeks.com"
+if not os.path.exists(config_path):
+    for f in ["/etc/nginx/sites-enabled/panel.centeks.com", "/etc/nginx/conf.d/panel.conf", "/etc/nginx/sites-available/default"]:
+        if os.path.exists(f):
+            config_path = f
             break
 
-print("Bulunan Nginx dosyalari:", found)
+print("Hedef dosya:", config_path)
+with open(config_path, "r", encoding="utf-8") as f:
+    text = f.read()
+
+# Eski/hatali eklenmis location /api/ bloklarini temizle
+text = re.sub(r"\s*#\s*CENTEKS Destek.*?\n\s*location /api/ \{.*?\n\s*\}", "", text, flags=re.DOTALL)
+text = re.sub(r"\s*location /api/ \{.*?\n\s*\}", "", text, flags=re.DOTALL)
 
 api_block = """
-    # CENTEKS Destek Canli API Koprusu
+    # CENTEKS Destek Canli API Koprusu (Port 8000)
     location /api/ {
         proxy_pass http://127.0.0.1:8000/api/;
+        proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 """
 
-for target in found:
-    with open(target, "r", encoding="utf-8") as fp:
-        content = fp.read()
+# Dosyada birden fazla server { ... } blogu olabilir (orn: 80 ve 443)
+# Her server blogunun sonuna (kapanis parantezinden hemen once) ekle
+parts = text.split("server {")
+new_parts = [parts[0]]
 
-    if "location /api/" in content:
-        print("-> /api/ zaten ekli:", target)
-        continue
-
-    # root /var/www/centeks-panel varsa hemen arkasina ekle
-    if "centeks-panel" in content:
-        pos = content.find("centeks-panel")
-        end_line = content.find(";", pos)
-        if end_line != -1:
-            new_content = content[:end_line+1] + api_block + content[end_line+1:]
-        else:
-            idx = content.rfind("}")
-            new_content = content[:idx] + api_block + content[idx:]
+for part in parts[1:]:
+    # Bu server blogunun son } karakterini bul
+    idx = part.rfind("}")
+    if idx != -1:
+        mod_part = part[:idx] + api_block + part[idx:]
+        new_parts.append(mod_part)
     else:
-        idx = content.rfind("}")
-        new_content = content[:idx] + api_block + content[idx:]
+        new_parts.append(part)
 
-    with open(target, "w", encoding="utf-8") as fp:
-        fp.write(new_content)
-    print("-> /api/ basariyla enjekte edildi:", target)
+final_text = "server {".join(new_parts)
+
+with open(config_path, "w", encoding="utf-8") as f:
+    f.write(final_text)
+
+print("✅ Hem HTTP (80) hem HTTPS (443) bloklarina /api/ eklendi!")
 
 subprocess.run(["nginx", "-t"], check=True)
 subprocess.run(["systemctl", "reload", "nginx"], check=True)
-print("✅ Nginx basariyla test edildi ve yenilendi!")
+print("✅ Nginx basariyla yenilendi!")
 '
 
+echo ">>> [2/3] Canlı Uç Nokta Doğrulaması Yapılıyor..."
+sleep 1
+curl -i -k https://127.0.0.1/api/devices -H "Host: panel.centeks.com"
+
+echo ""
 echo "=========================================================="
-echo " [3/3] Canlı Uç Nokta Testi (/api/devices)                "
-echo "=========================================================="
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://panel.centeks.com/api/devices || echo "000")
-if [ "$HTTP_CODE" = "200" ]; then
-    echo "🎉 TEBRİKLER! https://panel.centeks.com/api/devices 200 OK yanıtı veriyor!"
-    echo "Şimdi panel.centeks.com sayfasını yenileyin; yeşil ışık yanacak ve istemci panele düşecektir."
-else
-    echo "Yanıt Kodu: $HTTP_CODE. Yerel test:"
-    curl -i http://127.0.0.1:8000/api/devices
-fi
+echo "✅ İŞLEM TAMAMLANDI! Tarayıcınızda panel.centeks.com açın."
 echo "=========================================================="
